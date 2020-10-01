@@ -32,7 +32,8 @@ PHP:
 
 ## Hints
 
-* To get this working on XAMPP, you might need to create an ldap.conf file (C:\OpenLDAP\ldap.conf) with a setting like ```TLS_REQCERT never´´´(insecure, or add proper config)
+* To get this working on XAMPP, you might need to create an ldap.conf file (C:\OpenLDAP\ldap.conf) with a setting like this:
+```TLS_REQCERT never # insecure, or add proper config)```
 
 ## License
 https://www.gnu.org/licenses/gpl-3.0.en.html
