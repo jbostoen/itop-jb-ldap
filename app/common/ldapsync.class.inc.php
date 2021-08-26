@@ -165,6 +165,8 @@ use \utils;
 			// Try to bind
 			@ldap_bind($oConnection, $aSyncRule['default_user'], $aSyncRule['default_pwd']) or self::Throw('Error: sync rule (index '.$sIndex.'): unable to bind to server '.$aSyncRule['host'].':'.$aSyncRule['port'].' with user '.$aSyncRule['default_user']);
 
+			self::Trace('. LDAP Filter: '.$aSyncRule['user_query']);
+
 			$oResult = ldap_search($oConnection, $aSyncRule['base_dn'], $aSyncRule['user_query'], $aSyncRule['ldap_attributes']);
 			$aLDAP_Entries = [];
 
@@ -253,7 +255,12 @@ use \utils;
 								// This may throw errors. 
 								// Example: using $ldap_user->telephonenumber$ (but empty value) while a NULL value is not allowed
 								// Silently supress
-								$iKey = $oObj->DBInsert();
+								try {
+									$iKey = $oObj->DBInsert();
+								}
+								catch(Exception $e) {
+									self::Throw('Exception occurred while creating object: '.$e->GetMessage());
+								}
 								
 								$aPlaceHolders['previous_object->id'] = $iKey;
 								
@@ -297,8 +304,14 @@ use \utils;
 							}
 							
 							if($bUpdated == true) {
-								$oObj->DBUpdate();
-								self::Trace('.... '.$aObject['class'].' updated for LDAP-user.');
+								
+								try {
+									$oObj->DBUpdate();
+									self::Trace('.... '.$aObject['class'].' updated for LDAP-user.');
+								}
+								catch(Exception $e) {
+									self::Trace('Exception while updating object: '.$e->GetMessage());
+								}
 							}
 							else {
 								self::Trace('.... '.$aObject['class'].' NOT updated for LDAP-user.');								

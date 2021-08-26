@@ -4,7 +4,7 @@
 Imports users from Active Directory and can create several types of iTop objects.
 
 ## Features
-* Run different LDAP queries to different servers (default settings are possible)
+* Run different LDAP queries on different servers (default settings are possible)
 * Use LDAP info in subsequent OQL-queries when creating/updating iTop objects
 
 
@@ -12,11 +12,13 @@ Imports users from Active Directory and can create several types of iTop objects
 See demo config in module.jb-ldap.php
 
 Placeholders
-```
-$ldap_user->ldap_attribute$ (replace ldap_attribute with queried LDAP attribute)
-$first_object->att_code$ (iTop object. Replace att_code with an attribute of the first found/created object)
-$previous->att_code$ (iTop object. Replace att_code with an attribute of the previously found/created object)
-```
+
+| name                        	| replacement                                                                              	|
+| -----------------------------	| -----------------------------------------------------------------------------------------	|
+| $ldap_user->ldap_attribute$ 	| replace ldap_attribute with queried LDAP attribute.                                     	|
+| $first_object->att_code$    	| iTop object. Replace att_code with an attribute of the first found/created object.       	|
+| $previous->att_code$        	| iTop object. Replace att_code with an attribute of the previously found/created object.  	|
+
 
 ## Important notes
 * Experimental
@@ -32,7 +34,7 @@ PHP:
 
 ## Hints
 
-* To get this working on XAMPP, you might need to create an ldap.conf file (C:\OpenLDAP\ldap.conf) with a setting like this:
+* To get this working on XAMPP, you might need to create an ldap.conf file (C:\OpenLDAP\ldap.conf) with a setting like this:  
 ```TLS_REQCERT never # insecure, or add proper config)```
 
 ## License
