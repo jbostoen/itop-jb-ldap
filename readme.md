@@ -1,4 +1,14 @@
 # jb-ldap
+Copyright (C) 2021 Jeffrey Bostoen
+
+[![License](https://img.shields.io/github/license/jbostoen/iTop-custom-extensions)](https://github.com/jbostoen/iTop-custom-extensions/blob/master/license.md)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/jbostoen)
+🍻 ☕
+
+
+Need assistance with iTop or one of its extensions?  
+Need custom development?  
+Please get in touch to discuss the terms: **jbostoen.itop@outlook.com**
 
 ## What?
 Imports users from Active Directory and can create several types of iTop objects.
@@ -36,9 +46,4 @@ PHP:
 
 * To get this working on XAMPP, you might need to create an ldap.conf file (C:\OpenLDAP\ldap.conf) with a setting like this:  
 ```TLS_REQCERT never # insecure, or add proper config)```
-
-## License
-https://www.gnu.org/licenses/gpl-3.0.en.html
-Copyright (C) 2019-2020 Jeffrey Bostoen
-
 
