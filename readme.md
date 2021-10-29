@@ -1,14 +1,14 @@
 # jb-ldap
+
 Copyright (C) 2021 Jeffrey Bostoen
 
 [![License](https://img.shields.io/github/license/jbostoen/iTop-custom-extensions)](https://github.com/jbostoen/iTop-custom-extensions/blob/master/license.md)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/jbostoen)
 🍻 ☕
 
-
 Need assistance with iTop or one of its extensions?  
 Need custom development?  
-Please get in touch to discuss the terms: **jbostoen.itop@outlook.com**
+Please get in touch to discuss the terms: **info@jeffreybostoen.be** / https://jeffreybostoen.be
 
 ## What?
 Imports users from Active Directory and can create several types of iTop objects.
@@ -34,7 +34,9 @@ Placeholders
 * Experimental
 
 ## Requirements
-* requires jb-framework
+
+iTop extensions
+* [jb-framework](https://github.com/jbostoen/itop-jb-framework)
 
 ## Cookbook
 
