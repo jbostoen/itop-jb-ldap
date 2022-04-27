@@ -1,16 +1,16 @@
 <?php
 
 /**
- * @copyright   Copyright (C) 2019 Jeffrey Bostoen
+ * @copyright   Copyright (c) 2019-2022 Jeffrey Bostoen
  * @license     https://www.gnu.org/licenses/gpl-3.0.en.html
- * @version     2019-10-28 13:58:34
+ * @version     2.7.220427
  *
  * iTop module definition file
  */
 
 SetupWebPage::AddModule(
 	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
-	'jb-ldap/2.6.191028',
+	'jb-ldap/2.7.220427',
 	array(
 		// Identification
 		//
@@ -62,10 +62,10 @@ SetupWebPage::AddModule(
 			// Settings are similar to Combodo's authent-ldap and used as default settings for any sync rule (the specific rules can overrule this)
 			'default_sync_rule' => array(
 			
-				'host' => 'ldaps://127.0.0.1',
+				'host' => 'ldap://127.0.0.1', // Note that even for ldaps, the protocol is ldap://
 				'port' => 636, // LDAP: 389, LDAPS: 636
-				'default_user' => 'intranet.domain.org\scanuser',
-				'default_pwd' => 'someuser',
+				'default_user' => 'intranet.domain.org\\someuser', // Mind to escape certain characters (PHP)
+				'default_pwd' => 'somepassword',
 				'base_dn' => 'DC=intranet,DC=domain,DC=org',
 				'start_tls' => false,
 				'options' => array(
@@ -78,7 +78,7 @@ SetupWebPage::AddModule(
 				'update_objects' => true,
 				
 				// Currently only strings and integers are supported; not lists/arrays/...
-				// These attributes will be fetched and are then available in the $ldap_user->ldap_att$ placeholder
+				// These LDAP attributes will be fetched and are then available in the $ldap_user->ldap_att$ placeholder
 				'ldap_attributes' => array(
 					'sn',
 					'givenname',
@@ -100,8 +100,9 @@ SetupWebPage::AddModule(
 			'sync_rules' => array(
 			
 				array(
-					// Require mail. 'not set' would be: (!(mail=*)); while (mail=*) means mail MUST be set.
-					'user_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*))',
+					// Retrieve all users for which an e-mail account is set and for which the admin account name is not 'admin'
+					// Hint: 'not set' would be: (!(mail=*)); while (mail=*) means mail MUST be set.
+					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*))',
 					
 					'objects' => array(
 					
@@ -115,8 +116,8 @@ SetupWebPage::AddModule(
 						0 => array(
 							'class' => 'Person',
 							'attributes' => array(
-								'org_id' => 1, // Organization for the user. Required attribute
-								'mail' => '$ldap_user->mail$',
+								'org_id' => 1, // Organization for the object. Required attribute
+								'email' => '$ldap_user->mail$',
 								'first_name' => '$ldap_user->givenname$',
 								'name' => '$ldap_user->sn$',
 								'phone' => '$ldap_user->telephonenumber$',
@@ -126,6 +127,36 @@ SetupWebPage::AddModule(
 						
 					)
 				),
+				
+				/*
+				
+				array(
+					// Obtain all computers
+					'ldap_query' => '(&(objectClass=computer))',
+					
+					'objects' => array(
+					
+						// List iTop classes where the info can be used. Objects will be created or updated (unique match), not deleted.
+						// Placeholders (can be used to set new attribute values and in OQL queries)
+						// - $ldap_user->ldap_att$ (attributes determined in ldap_attributes setting), 
+						// - $first_object->id$ (only available after the first object has been created!)
+						//   Use case example: refer to a created Person object to create user accounts
+						// - $previous_object->id$
+						//   Use case: link between a first and second object
+						0 => array(
+							'class' => 'PC',
+							'attributes' => array(
+								'org_id' => 1, // Organization for the object. Required attribute
+								'name' => '$ldap_user->cn$',
+							),
+							'reconcile_on' => 'SELECT Person WHERE email LIKE "$ldap_user->cn$"'
+						),
+						
+					)
+				),
+
+				*/
+
 			)
 		
 		),

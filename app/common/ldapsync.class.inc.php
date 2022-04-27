@@ -1,9 +1,9 @@
 <?php 
 
 /**
- * @copyright   Copyright (C) 2019 Jeffrey Bostoen
+ * @copyright   Copyright (c) 2019-2022 Jeffrey Bostoen
  * @license     https://www.gnu.org/licenses/gpl-3.0.en.html
- * @version     2019-10-28 13:58:34
+ * @version     2.7.220427
  *
  * Definition of LDAPSyncProcessor
  */
@@ -65,6 +65,15 @@ use \utils;
 		 */
 		public function ProcessLDAPs() {
 		
+			// Ignore invalid cert?
+			$sEnvIgnoreCert = (getenv('TLS_REQCERT') !== false ? getenv('TLS_REQCERT') : null);
+			$sEnvIgnoreLDAPCert = (getenv('LDAPTLS_REQCERT') !== false ? getenv('LDAPTLS_REQCERT') : null);
+			putenv('TLS_REQCERT=never');
+			putenv('LDAPTLS_REQCERT=never');
+			
+			// Note: the certificate ignore options only work when this setting is allowed in php.ini (variables_order)
+			self::Trace('PHP Environment: '.json_encode($_ENV));
+			
 			self::Trace('Start processing sync_rules...');
 			
 			$aDefaultSyncRule = utils::GetCurrentModuleSetting('default_sync_rule', []);
@@ -84,6 +93,14 @@ use \utils;
 					self::Trace('Failed to process sync rule (index '.$sIndex.'): '.$e->GetMessage());
 				}
 				
+			}
+			
+			// Restore
+			if($sEnvIgnoreCert !== null) {
+				putenv('TLS_REQCERT='.$sEnvIgnoreCert);
+			}
+			if($sEnvIgnoreLDAPCert !== null) {
+				putenv('LDAPTLS_REQCERT='.$sEnvIgnoreLDAPCert);
 			}
 			
 			self::Trace('Finished synchronization.');
@@ -165,9 +182,9 @@ use \utils;
 			// Try to bind
 			@ldap_bind($oConnection, $aSyncRule['default_user'], $aSyncRule['default_pwd']) or self::Throw('Error: sync rule (index '.$sIndex.'): unable to bind to server '.$aSyncRule['host'].':'.$aSyncRule['port'].' with user '.$aSyncRule['default_user']);
 
-			self::Trace('. LDAP Filter: '.$aSyncRule['user_query']);
+			self::Trace('. LDAP Filter: '.$aSyncRule['ldap_query']);
 
-			$oResult = ldap_search($oConnection, $aSyncRule['base_dn'], $aSyncRule['user_query'], $aSyncRule['ldap_attributes']);
+			$oResult = ldap_search($oConnection, $aSyncRule['base_dn'], $aSyncRule['ldap_query'], $aSyncRule['ldap_attributes']);
 			$aLDAP_Entries = [];
 
 			if($oResult !== false) {
@@ -185,7 +202,7 @@ use \utils;
 					continue;
 				}
 				
-				// Start for each LDAP user with an empty placeholders set
+				// Start for each LDAP object with an empty placeholders set
 				$aPlaceHolders = [];
 				$aPlaceHolders['first_object->id'] = -1;
 				
@@ -202,15 +219,15 @@ use \utils;
 						// Setting an object instead of 'standalone' variables won't work well, 
 						// since it then requires a GetForTemplate() method (see \MetaModel::ApplyParams())
 						// Usually 'Count' and '0'
-						$aPlaceHolders['ldap_user->'.$sKey] = $aValue[(String)'0'];
+						$aPlaceHolders['ldap_object->'.$sKey] = $aValue[(String)'0'];
 					}
 				}
 				
 				// If null, LDAP does not return certain attributes (example: no phone number specified).
 				// For this implementation, set empty values.
 				foreach($aSyncRule['ldap_attributes'] as $sAttLDAP) {
-					if(isset($aPlaceHolders['ldap_user->'.$sAttLDAP]) == false) {
-						$aPlaceHolders['ldap_user->'.$sAttLDAP] = '';
+					if(isset($aPlaceHolders['ldap_object->'.$sAttLDAP]) == false) {
+						$aPlaceHolders['ldap_object->'.$sAttLDAP] = '';
 					}
 				}
 
@@ -248,12 +265,12 @@ use \utils;
 								foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
 									// Allow placeholders in attributes; replace them here
 									$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
-									self::Trace('....' . $sAttCode . '=> ' . $sAttValue);
+									self::Trace('.....' . $sAttCode . ' => ' . $sAttValue);
 									$oObj->Set($sAttCode, $sAttValue);
 								}
 								
 								// This may throw errors. 
-								// Example: using $ldap_user->telephonenumber$ (but empty value) while a NULL value is not allowed
+								// Example: using $ldap_object->telephonenumber$ (but empty value) while a NULL value is not allowed
 								// Silently supress
 								try {
 									$iKey = $oObj->DBInsert();
@@ -269,11 +286,11 @@ use \utils;
 									$aPlaceHolders['first_object->id'] = $iKey;
 								}
 								
-								self::Trace('.... '.$aObject['class'].' for LDAP-user.');
+								self::Trace('.... '.$aObject['class'].' for LDAP-object.');
 								
 							}
 							catch(Exception $e) {
-								self::Trace('.... Unable to create a new '.$aObject['class'].' for LDAP-user:' . $e->GetMessage());
+								self::Trace('.... Unable to create a new '.$aObject['class'].' for LDAP-object:' . $e->GetMessage());
 							}
 							
 							
@@ -307,14 +324,14 @@ use \utils;
 								
 								try {
 									$oObj->DBUpdate();
-									self::Trace('.... '.$aObject['class'].' updated for LDAP-user.');
+									self::Trace('.... '.$aObject['class'].' updated for LDAP-object.');
 								}
 								catch(Exception $e) {
 									self::Trace('Exception while updating object: '.$e->GetMessage());
 								}
 							}
 							else {
-								self::Trace('.... '.$aObject['class'].' NOT updated for LDAP-user.');								
+								self::Trace('.... '.$aObject['class'].' NOT updated for LDAP-object.');								
 							}
 							
 							$aPlaceHolders['previous_object->id'] = $oObj->GetKey();
@@ -329,7 +346,7 @@ use \utils;
 							// Set first object ID (if unset!) to something non-existing to prevent errors in chained instructions.
 							// Set previous object ID to something non-existing to prevent errors in chained instructions.
 							$aPlaceHolders['previous_object->id'] = -1;
-							self::Trace('... Could not uniquely reconcile ' . $sClassName . '. Ignoring this for the current user.');
+							self::Trace('... Could not uniquely reconcile ' . $sClassName . '. Ignoring this for the current object.');
 							break;
 							
 					}
