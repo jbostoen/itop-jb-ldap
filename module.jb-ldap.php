@@ -51,15 +51,15 @@ SetupWebPage::AddModule(
 		'settings' => array(
 		
 			// Module specific settings go here, if any
+			// These settings determine if the extension is enabled and when the sync will occur (once a day)
 			'time' => '03:00',
 			'week_days' => 'monday, tuesday, wednesday, thursday, friday',
 			'enabled' => true,
 			'debug' => false,
 		
 			// Specifies defaults (if any)			
-			// One or more sync rules should be placed here.
 			// For security, it's highly recommended to only use an account with read-only permissions.
-			// Settings are similar to Combodo's authent-ldap and used as default settings for any sync rule (the specific rules can overrule this)
+			// Settings are similar to Combodo's authent-ldap and used as default settings for any sync rule below (the specific sync rules can overrule this)
 			'default_sync_rule' => array(
 			
 				'host' => 'ldap://127.0.0.1', // Note that even for ldaps, the protocol is ldap://
@@ -97,6 +97,8 @@ SetupWebPage::AddModule(
 				
 			),
 			
+			// One or more sync rules should be placed here.
+			// A synchronization rule determined which server to query, which base DN, which options, which LDAP query to use and how to map the LDAP object to an iTop object.
 			'sync_rules' => array(
 			
 				array(
@@ -107,12 +109,16 @@ SetupWebPage::AddModule(
 					'objects' => array(
 					
 						// List iTop classes where the info can be used. Objects will be created or updated (unique match), not deleted.
+						// In this example, one iTop object (Person) will be created; but it's possible to add multiple objects here.
+						//
 						// Placeholders (can be used to set new attribute values and in OQL queries)
+						//
 						// - $ldap_user->ldap_att$ (attributes determined in ldap_attributes setting), 
 						// - $first_object->id$ (only available after the first object has been created!)
 						//   Use case example: refer to a created Person object to create user accounts
 						// - $previous_object->id$
 						//   Use case: link between a first and second object
+						// - $current_datetime$ will add the current datetime of sync.
 						0 => array(
 							'class' => 'Person',
 							'attributes' => array(
@@ -136,13 +142,6 @@ SetupWebPage::AddModule(
 					
 					'objects' => array(
 					
-						// List iTop classes where the info can be used. Objects will be created or updated (unique match), not deleted.
-						// Placeholders (can be used to set new attribute values and in OQL queries)
-						// - $ldap_user->ldap_att$ (attributes determined in ldap_attributes setting), 
-						// - $first_object->id$ (only available after the first object has been created!)
-						//   Use case example: refer to a created Person object to create user accounts
-						// - $previous_object->id$
-						//   Use case: link between a first and second object
 						0 => array(
 							'class' => 'PC',
 							'attributes' => array(

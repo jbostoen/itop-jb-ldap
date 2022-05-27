@@ -19,7 +19,8 @@ Imports users from Active Directory and can create several types of iTop objects
 
 
 # Config
-See demo config in module.jb-ldap.php
+
+See documented demo config in module.jb-ldap.php
 
 Placeholders
 
@@ -28,9 +29,11 @@ Placeholders
 | $ldap_object->ldap_attribute$	| Replace ldap_attribute with queried LDAP attribute.                                     	|
 | $first_object->att_code$    	| iTop object. Replace att_code with an attribute of the first found/created object.       	|
 | $previous->att_code$        	| iTop object. Replace att_code with an attribute of the previously found/created object.  	|
+| $current_datetime$        	| Current datetime                                                                      	|
 
 
 ## Important notes
+
 * Experimental
 
 ## Requirements

@@ -53,7 +53,7 @@ use \utils;
 		 */
 		public function Throw($sMessage) {
 			
-			self::Trace($sMessage);
+			static::Trace($sMessage);
 			throw new Exception($sMessage);
 			
 		}
@@ -72,9 +72,9 @@ use \utils;
 			putenv('LDAPTLS_REQCERT=never');
 			
 			// Note: the certificate ignore options only work when this setting is allowed in php.ini (variables_order)
-			self::Trace('PHP Environment: '.json_encode($_ENV));
+			static::Trace('PHP Environment: '.json_encode($_ENV));
 			
-			self::Trace('Start processing sync_rules...');
+			static::Trace('Start processing sync_rules...');
 			
 			$aDefaultSyncRule = utils::GetCurrentModuleSetting('default_sync_rule', []);
 			$aSyncRules = utils::GetCurrentModuleSetting('sync_rules', []);
@@ -86,11 +86,11 @@ use \utils;
 				$aSyncRule = array_replace_recursive($aDefaultSyncRule, $aSyncRule);
 				
 				try {
-					self::ProcessLDAP($sIndex, $aSyncRule);		
+					static::ProcessLDAP($sIndex, $aSyncRule);		
 				}
 				catch(Exception $e) {
 					// Nothing for now?
-					self::Trace('Failed to process sync rule (index '.$sIndex.'): '.$e->GetMessage());
+					static::Trace('Failed to process sync rule (index '.$sIndex.'): '.$e->GetMessage());
 				}
 				
 			}
@@ -103,7 +103,7 @@ use \utils;
 				putenv('LDAPTLS_REQCERT='.$sEnvIgnoreLDAPCert);
 			}
 			
-			self::Trace('Finished synchronization.');
+			static::Trace('Finished synchronization.');
 			
 		}
 		
@@ -122,13 +122,13 @@ use \utils;
 			// Check if there is enough info to connect to an LDAP
 			foreach($aKeys as $sKey) {
 				if(isset($aSyncRule[$sKey]) == false) {
-					self::Throw('Error: sync rule (index '.$sIndex.'): "'.$sKey.'" is missing.');
+					static::Throw('Error: sync rule (index '.$sIndex.'): "'.$sKey.'" is missing.');
 					return;
 				}
 			}
 			
 			if(is_array($aSyncRule['options']) == false) {
-				self::Throw('Error: sync rule (index '.$sIndex.'): "options" expects an array');
+				static::Throw('Error: sync rule (index '.$sIndex.'): "options" expects an array');
 			}
 			
 			
@@ -137,20 +137,20 @@ use \utils;
 				
 				// OQL query specified?
 				if(isset($aObject['reconcile_on']) == false) {
-					self::Throw('Error: sync rule (index '.$sIndex.'): no "reconcile_on" specified for object index '.$sIndex);
+					static::Throw('Error: sync rule (index '.$sIndex.'): no "reconcile_on" specified for object index '.$sIndex);
 				}
 				
 				// Valid class specified?
 				preg_match('/SELECT ([A-z0-9]{1,}).*$/', $aObject['reconcile_on'], $aMatches);
 				
 				if(count($aMatches) < 2) {
-					self::Throw('Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex);
+					static::Throw('Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex);
 				}
 				
 				$sClass = $aMatches[1];
 				
 				if(MetaModel::IsValidClass($sClass) == false) {
-					self::Throw('Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex.' - class: '.$sClass);					
+					static::Throw('Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex.' - class: '.$sClass);					
 				}
 				
 				// Valid attributes specified in configuration?
@@ -158,7 +158,7 @@ use \utils;
 				$aValidAttributes = MetaModel::GetAttributesList($sClass);
 				foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
 					if(in_array($sAttCode, $aValidAttributes) == false) {
-						self::Throw('Error: sync rule (index '.$sIndex.'): invalid attribute "'.$sAttCode.'" specified for object index '.$sIndex.' - class: '.$sClass);	
+						static::Throw('Error: sync rule (index '.$sIndex.'): invalid attribute "'.$sAttCode.'" specified for object index '.$sIndex.' - class: '.$sClass);	
 					}
 				}
 				
@@ -170,19 +170,19 @@ use \utils;
 			$oConnection = @ldap_connect($aSyncRule['host'], $aSyncRule['port']);
 			
 			if($oConnection === false) {
-				self::Throw('Error: sync rule (index '.$sIndex.'): unable to connect to the LDAP-server: '.$aSyncRule['host'].':'.$aSyncRule['port']);
+				static::Throw('Error: sync rule (index '.$sIndex.'): unable to connect to the LDAP-server: '.$aSyncRule['host'].':'.$aSyncRule['port']);
 			}
 			
 			foreach($aSyncRule['options'] as $sKey => $uValue) {
 				if(!ldap_set_option($oConnection, $sKey, $uValue)) {
-					self::Throw('Error: sync rule (index '.$sIndex.'): invalid LDAP-option or value: '.$sKey);
+					static::Throw('Error: sync rule (index '.$sIndex.'): invalid LDAP-option or value: '.$sKey);
 				}
 			}
 			
 			// Try to bind
-			@ldap_bind($oConnection, $aSyncRule['default_user'], $aSyncRule['default_pwd']) or self::Throw('Error: sync rule (index '.$sIndex.'): unable to bind to server '.$aSyncRule['host'].':'.$aSyncRule['port'].' with user '.$aSyncRule['default_user']);
+			@ldap_bind($oConnection, $aSyncRule['default_user'], $aSyncRule['default_pwd']) or static::Throw('Error: sync rule (index '.$sIndex.'): unable to bind to server '.$aSyncRule['host'].':'.$aSyncRule['port'].' with user '.$aSyncRule['default_user']);
 
-			self::Trace('. LDAP Filter: '.$aSyncRule['ldap_query']);
+			static::Trace('. LDAP Filter: '.$aSyncRule['ldap_query']);
 
 			$oResult = ldap_search($oConnection, $aSyncRule['base_dn'], $aSyncRule['ldap_query'], $aSyncRule['ldap_attributes']);
 			$aLDAP_Entries = [];
@@ -191,7 +191,7 @@ use \utils;
 				$aLDAP_Entries = ldap_get_entries($oConnection, $oResult);
 			}
 			else {
-				self::Throw('Error: sync rule (index '.$sIndex.'): no results');
+				static::Throw('Error: sync rule (index '.$sIndex.'): no results');
 			}
 
 			// Process
@@ -204,6 +204,7 @@ use \utils;
 				
 				// Start for each LDAP object with an empty placeholders set
 				$aPlaceHolders = [];
+				$aPlaceHolders['current_datetime'] = date('Y-m-d H:i:s');
 				$aPlaceHolders['first_object->id'] = -1;
 				
 				// All other entries should have the values listed.
@@ -231,17 +232,17 @@ use \utils;
 					}
 				}
 
-				self::Trace('..' . json_encode($aEntry));
+				static::Trace('..' . json_encode($aEntry));
 				
 				// Create objects as needed
 				foreach($aSyncRule['objects'] as $sIndex => $aObject) {
 					
 					if(isset($aObject['class']) == false) {
-						self::Throw('Error: sync rule (index '.$sIndex.'): Class not defined');
+						static::Throw('Error: sync rule (index '.$sIndex.'): Class not defined');
 					}
 										
 					$sOQL = MetaModel::ApplyParams($aObject['reconcile_on'], $aPlaceHolders);
-					self::Trace('.. OQL: '.$sOQL);
+					static::Trace('.. OQL: '.$sOQL);
 					
 					$oFilter = DBObjectSearch::FromOQL($sOQL);
 					$oSet = new CMDBObjectSet($oFilter);
@@ -252,11 +253,11 @@ use \utils;
 							// Create							
 							
 							if($aSyncRule['create_objects'] != true) {
-								self::Trace('... Object does not exist. Not creating object: create_objects = false');
+								static::Trace('... Object does not exist. Not creating object: create_objects = false');
 								break;
 							}
 							
-							self::Trace('... Object does not exist. Create ' . $sClassName);
+							static::Trace('... Object does not exist. Create ' . $sClassName);
 							
 							try {
 								
@@ -265,7 +266,7 @@ use \utils;
 								foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
 									// Allow placeholders in attributes; replace them here
 									$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
-									self::Trace('.....' . $sAttCode . ' => ' . $sAttValue);
+									static::Trace('.....' . $sAttCode . ' => ' . $sAttValue);
 									$oObj->Set($sAttCode, $sAttValue);
 								}
 								
@@ -276,7 +277,7 @@ use \utils;
 									$iKey = $oObj->DBInsert();
 								}
 								catch(Exception $e) {
-									self::Throw('Exception occurred while creating object: '.$e->GetMessage());
+									static::Throw('Exception occurred while creating object: '.$e->GetMessage());
 								}
 								
 								$aPlaceHolders['previous_object->id'] = $iKey;
@@ -286,11 +287,11 @@ use \utils;
 									$aPlaceHolders['first_object->id'] = $iKey;
 								}
 								
-								self::Trace('.... '.$aObject['class'].' for LDAP-object.');
+								static::Trace('.... '.$aObject['class'].' for LDAP-object.');
 								
 							}
 							catch(Exception $e) {
-								self::Trace('.... Unable to create a new '.$aObject['class'].' for LDAP-object:' . $e->GetMessage());
+								static::Trace('.... Unable to create a new '.$aObject['class'].' for LDAP-object:' . $e->GetMessage());
 							}
 							
 							
@@ -299,14 +300,14 @@ use \utils;
 						case 1:
 						
 							if($aSyncRule['update_objects'] != true) {
-								self::Trace('... Not updating object. update_objects = false update_object');
+								static::Trace('... Not updating object. update_objects = false update_object');
 								break;
 							}
 							// Fetch first object from set
 							$oObj = $oSet->Fetch();
 							
 							// Update							
-							self::Trace('... Update ' . $sClassName.'::'.$oObj->GetKey());
+							static::Trace('... Update ' . $sClassName.'::'.$oObj->GetKey());
 							
 							$bUpdated = false;
 							
@@ -324,14 +325,14 @@ use \utils;
 								
 								try {
 									$oObj->DBUpdate();
-									self::Trace('.... '.$aObject['class'].' updated for LDAP-object.');
+									static::Trace('.... '.$aObject['class'].' updated for LDAP-object.');
 								}
 								catch(Exception $e) {
-									self::Trace('Exception while updating object: '.$e->GetMessage());
+									static::Trace('Exception while updating object: '.$e->GetMessage());
 								}
 							}
 							else {
-								self::Trace('.... '.$aObject['class'].' NOT updated for LDAP-object.');								
+								static::Trace('.... '.$aObject['class'].' NOT updated for LDAP-object.');								
 							}
 							
 							$aPlaceHolders['previous_object->id'] = $oObj->GetKey();
@@ -346,7 +347,7 @@ use \utils;
 							// Set first object ID (if unset!) to something non-existing to prevent errors in chained instructions.
 							// Set previous object ID to something non-existing to prevent errors in chained instructions.
 							$aPlaceHolders['previous_object->id'] = -1;
-							self::Trace('... Could not uniquely reconcile ' . $sClassName . '. Ignoring this for the current object.');
+							static::Trace('... Could not uniquely reconcile ' . $sClassName . '. Ignoring this for the current object.');
 							break;
 							
 					}
