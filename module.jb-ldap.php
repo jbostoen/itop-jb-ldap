@@ -10,7 +10,7 @@
 
 SetupWebPage::AddModule(
 	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
-	'jb-ldap/2.7.220427',
+	'jb-ldap/2.7.220629',
 	array(
 		// Identification
 		//
@@ -78,7 +78,7 @@ SetupWebPage::AddModule(
 				'update_objects' => true,
 				
 				// Currently only strings and integers are supported; not lists/arrays/...
-				// These LDAP attributes will be fetched and are then available in the $ldap_user->ldap_att$ placeholder
+				// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
 				'ldap_attributes' => array(
 					'sn',
 					'givenname',
@@ -113,7 +113,7 @@ SetupWebPage::AddModule(
 						//
 						// Placeholders (can be used to set new attribute values and in OQL queries)
 						//
-						// - $ldap_user->ldap_att$ (attributes determined in ldap_attributes setting), 
+						// - $ldap_object->ldap_att$ (attributes determined in ldap_attributes setting), 
 						// - $first_object->id$ (only available after the first object has been created!)
 						//   Use case example: refer to a created Person object to create user accounts
 						// - $previous_object->id$
@@ -123,12 +123,12 @@ SetupWebPage::AddModule(
 							'class' => 'Person',
 							'attributes' => array(
 								'org_id' => 1, // Organization for the object. Required attribute
-								'email' => '$ldap_user->mail$',
-								'first_name' => '$ldap_user->givenname$',
-								'name' => '$ldap_user->sn$',
-								'phone' => '$ldap_user->telephonenumber$',
+								'email' => '$ldap_object->mail$',
+								'first_name' => '$ldap_object->givenname$',
+								'name' => '$ldap_object->sn$',
+								'phone' => '$ldap_object->telephonenumber$',
 							),
-							'reconcile_on' => 'SELECT Person WHERE email LIKE "$ldap_user->mail$"'
+							'reconcile_on' => 'SELECT Person WHERE email LIKE "$ldap_object->mail$"'
 						),
 						
 					)
@@ -138,17 +138,17 @@ SetupWebPage::AddModule(
 				
 				array(
 					// Obtain all computers
-					'ldap_query' => '(&(objectClass=computer))',
-					
+					'ldap_query' => '(objectClass=computer)',
+					'ldap_attributes' => array('name'),
 					'objects' => array(
 					
 						0 => array(
 							'class' => 'PC',
 							'attributes' => array(
 								'org_id' => 1, // Organization for the object. Required attribute
-								'name' => '$ldap_user->cn$',
+								'name' => '$ldap_object->name$',
 							),
-							'reconcile_on' => 'SELECT Person WHERE email LIKE "$ldap_user->cn$"'
+							'reconcile_on' => 'SELECT PC WHERE name LIKE "$ldap_object->name$"'
 						),
 						
 					)

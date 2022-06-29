@@ -211,6 +211,7 @@ use \utils;
 				// Since the limitation in this extension is that it should be a string/integer,
 				// only the first item is taken into account for now.
 				foreach($aEntry as $sKey => $aValue) {
+					
 					if(in_array((String)$sKey, $aSyncRule['ldap_attributes']) == false) {
 						// Should unset numbers (but keys are strings here, not integers)
 						// Should also unset 'count' and likely 'dn'
@@ -222,14 +223,17 @@ use \utils;
 						// Usually 'Count' and '0'
 						$aPlaceHolders['ldap_object->'.$sKey] = $aValue[(String)'0'];
 					}
+					
 				}
 				
 				// If null, LDAP does not return certain attributes (example: no phone number specified).
 				// For this implementation, set empty values.
 				foreach($aSyncRule['ldap_attributes'] as $sAttLDAP) {
+					
 					if(isset($aPlaceHolders['ldap_object->'.$sAttLDAP]) == false) {
 						$aPlaceHolders['ldap_object->'.$sAttLDAP] = '';
 					}
+					
 				}
 
 				static::Trace('..' . json_encode($aEntry));
@@ -264,10 +268,12 @@ use \utils;
 								$oObj = MetaModel::NewObject($aObject['class']);
 								
 								foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
+									
 									// Allow placeholders in attributes; replace them here
 									$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
 									static::Trace('.....' . $sAttCode . ' => ' . $sAttValue);
 									$oObj->Set($sAttCode, $sAttValue);
+									
 								}
 								
 								// This may throw errors. 
