@@ -193,6 +193,8 @@ use \utils;
 			else {
 				static::Throw('Error: sync rule (index '.$sIndex.'): no results');
 			}
+			
+			static::Trace('. Found '.count($aLDAP_Entries).' LDAP entries');
 
 			// Process
 			foreach($aLDAP_Entries as $sKey => $aEntry) {
