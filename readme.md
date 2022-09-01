@@ -11,16 +11,20 @@ Need custom development?
 Please get in touch to discuss the terms: **info@jeffreybostoen.be** / https://jeffreybostoen.be
 
 ## What?
-Imports users from Active Directory and can create several types of iTop objects.
+
+Imports objects from Active Directory into iTop.
 
 ## Features
-* Run different LDAP queries on different servers (default settings are possible)
-* Use LDAP info in subsequent OQL-queries when creating/updating iTop objects
+
+* Run different LDAP queries on different servers (default settings are possible).
+* Use LDAP info when creating/updating iTop objects and make it possible to have workflows such as:
+    1. Create a person when a new Active Directory user is found.
+	2. Create a user account linked to this newly created person object and add predefined profiles/organizations.
 
 
-# Config
+# Configuration
 
-See documented demo config in module.jb-ldap.php
+See documented demo configuration in [module.jb-ldap.php](module.jb-ldap.php)
 
 Placeholders
 
@@ -32,9 +36,6 @@ Placeholders
 | `$current_datetime$`               | Current datetime                                                                         |
 
 
-## Important notes
-
-* Experimental
 
 ## Requirements
 
@@ -44,12 +45,12 @@ iTop extensions
 ## Cookbook
 
 PHP:
-* how to implement a cron job process in iTop (iScheduledProcess)
-* using DBObjectSearch and DBObjectSet to fetch data
+* How to implement a cron job process in iTop (iScheduledProcess)
+* Use DBObjectSearch and DBObjectSet to fetch data
 
 ## Hints
 
-To get this working on XAMPP, you might need to create an ldap.conf file (C:\OpenLDAP\sysconf\ldap.conf) with a setting like this:  
+To get this working on XAMPP, it may be neccessary to create an ldap.conf file (C:\OpenLDAP\sysconf\ldap.conf) with a setting like this:  
 
 ```TLS_REQCERT never # insecure, add proper trusted certificate```
 
@@ -59,7 +60,6 @@ Then reboot Apache2.
 
 Upgrading from a version before 27th of April, 2022:
 
-* In the settings: 
-
-  * Setting `user_query` has been renamed to `ldap_query`
-  * In the placeholders: `ldap_user` has been renamed to `ldap_object`
+In the settings (iTop configuration file):
+* Setting `user_query` has been renamed to `ldap_query`
+* In the placeholders: `ldap_user` has been renamed to `ldap_object`
