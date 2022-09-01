@@ -10,7 +10,7 @@
 
 SetupWebPage::AddModule(
 	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
-	'jb-ldap/2.7.220629',
+	'jb-ldap/2.7.220901',
 	array(
 		// Identification
 		//
