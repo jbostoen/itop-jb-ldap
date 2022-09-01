@@ -13,6 +13,14 @@ namespace jb_itop_extensions\ldap_sync;
 use \Exception;
 
 // iTop internals
+use \AttributeDateTime;
+use \AttributeDecimal;
+use \AttributeExternalKey;
+use \AttributeInteger;
+use \AttributeLinkedSet;
+use \AttributeLinkedSetIndirect;
+use \AttributeOneWayPassword;
+use \AttributeString;
 use \CMDBObjectSet;
 use \DBObjectSearch;
 use \MetaModel;
@@ -41,7 +49,7 @@ use \utils;
 		 * @return void
 		 */
 		public function Trace($sMessage, $bThrowException = false) {
-			echo date('Y-m-d H:i:s').' - '. utils::GetCurrentModuleName().' - '.$sMessage.PHP_EOL;
+			echo date('Y-m-d H:i:s').' | '.$sMessage.PHP_EOL;
 		}
 
 		/**
@@ -117,7 +125,9 @@ use \utils;
 		 */
 		public function ProcessLDAP($sIndex, $aSyncRule) {
 			
-			$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'create_objects', 'update_objects'];
+			static::Trace('. '.str_repeat('-', 25).' Sync rule #'.$sIndex);
+			
+			$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'create_objects', 'update_objects', 'ldap_query'];
 			
 			// Check if there is enough info to connect to an LDAP
 			foreach($aKeys as $sKey) {
@@ -194,7 +204,8 @@ use \utils;
 				static::Throw('Error: sync rule (index '.$sIndex.'): no results');
 			}
 			
-			static::Trace('. Found '.count($aLDAP_Entries).' LDAP entries');
+			// The result has a 'count' key.
+			static::Trace('. Found '.(count($aLDAP_Entries) -1).' LDAP object(s)');
 
 			// Process
 			foreach($aLDAP_Entries as $sKey => $aEntry) {
@@ -238,14 +249,21 @@ use \utils;
 					
 				}
 
-				static::Trace('..' . json_encode($aEntry));
+				static::Trace('.. '.json_encode($aEntry));
 				
-				// Create objects as needed
-				foreach($aSyncRule['objects'] as $sIndex => $aObject) {
+				static::Trace('.. '.count($aSyncRule['objects']).' object(s) should be created per LDAP object.');
 					
+				// Create objects as needed
+				foreach($aSyncRule['objects'] as $sObjectIndex => $aObject) {
+					
+					static::Trace(str_repeat('=', 25).' Object: #'.$sObjectIndex);
+					
+						
 					if(isset($aObject['class']) == false) {
-						static::Throw('Error: sync rule (index '.$sIndex.'): Class not defined');
+						static::Throw('Error: "class" for object not defined');
 					}
+					
+					$sObjClass = $aObject['class'];
 										
 					$sOQL = MetaModel::ApplyParams($aObject['reconcile_on'], $aPlaceHolders);
 					static::Trace('.. OQL: '.$sOQL);
@@ -255,6 +273,7 @@ use \utils;
 					$sClassName = $oSet->GetClass();
 					
 					switch($oSet->Count()) {
+						
 						case 0:
 							// Create							
 							
@@ -267,16 +286,116 @@ use \utils;
 							
 							try {
 								
-								$oObj = MetaModel::NewObject($aObject['class']);
+								$oObj = MetaModel::NewObject($sObjClass);
 								
-								foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
+								$aAttDefs = MetaModel::ListAttributeDefs($sObjClass);
+								$aAttList = MetaModel::GetAttributesList($sObjClass);
+								
+								foreach($aObject['attributes'] as $sAttCode => $value) {
 									
-									// Allow placeholders in attributes; replace them here
-									$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
-									static::Trace('.....' . $sAttCode . ' => ' . $sAttValue);
-									$oObj->Set($sAttCode, $sAttValue);
+									if(in_array($sAttCode, $aAttList) == false) {
+										
+										static::Trace('..... Invalid attribute code: '.$sAttCode);
+										
+									}
+									else {
+										
+										// More types could be added at some point
+										$oAttDef = $aAttDefs[$sAttCode];
+										switch(true) {
+											
+											case ($oAttDef instanceof AttributeLinkedSet):
+											case ($oAttDef instanceof AttributeLinkedSetIndirect):
+											
+										
+												/** @var \ormLinkedSet $oSet Linked set **/
+												$oSet = $oObj->Get($sAttCode);
+												$sLnkClass = $oAttDef->GetLinkedClass();
+												$aSetLinkedobjAttDefs = MetaModel::ListAttributeDefs($sLnkClass);
+												$aSetLinkedObjAttList = MetaModel::GetAttributesList($sLnkClass);
+												
+												static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') - linked class: '.$sLnkClass.' - '.count($value).' linked objects');
+												
+												// - Linked object
+													
+													foreach($value as $aLinkedSetObject) {
+													
+														$oLinkedObject = MetaModel::NewObject($sLnkClass, []);
+
+														foreach($aLinkedSetObject as $sLinkedObjAttCode => $sLinkedObjAttValue) {
+															
+															if(in_array($sLinkedObjAttCode, $aSetLinkedObjAttList) == false) {
+																static::Trace('...... Invalid attribute code: '.$sLinkedObjAttCode);
+															}
+															else {
+																	
+																$oAttDefLinkedSet = $aSetLinkedobjAttDefs[$sLinkedObjAttCode];
+																	
+																switch(true) {
+																	
+																	case ($oAttDefLinkedSet instanceof AttributeDateTime):
+																	case ($oAttDefLinkedSet instanceof AttributeDecimal):
+																	case ($oAttDefLinkedSet instanceof AttributeExternalKey):
+																	case ($oAttDefLinkedSet instanceof AttributeInteger):
+																	case ($oAttDefLinkedSet instanceof AttributeOneWayPassword):
+																	case ($oAttDefLinkedSet instanceof AttributeString):
+																												
+																		// Allow placeholders in attributes; replace them here
+																		$sLinkedObjAttValue = MetaModel::ApplyParams($sLinkedObjAttValue, $aPlaceHolders);
+																		static::Trace('...... '.$sLinkedObjAttCode.' ('.get_class($oAttDef).') => '.$sLinkedObjAttValue);
+																		
+																		$oLinkedObject->Set($sLinkedObjAttCode, $sLinkedObjAttValue);
+																		break;
+																		
+																	default:
+																	
+																		static::Trace('...... '.$sLinkedObjAttCode.' ('.get_class($oAttDefLinkedSet).') not supported yet at this level.');
+																		break;
+																		
+																}
+																
+															}
+															
+														}
+
+														$oSet->AddItem($oLinkedObject);
+														
+													}
+												
+														
+													$oObj->Set($sAttCode, $oSet);
+												
+													static::Trace('..... ' . $sAttCode . ': added '.$oSet->Count().' links');
+													
+												break;
+												
+											case ($oAttDef instanceof AttributeDateTime):
+											case ($oAttDef instanceof AttributeDecimal):
+											case ($oAttDef instanceof AttributeExternalKey):
+											case ($oAttDef instanceof AttributeInteger):
+											case ($oAttDef instanceof AttributeOneWayPassword):
+											case ($oAttDef instanceof AttributeString):
+																						
+												// Allow placeholders in attributes; replace them here
+												$sAttValue = $value;
+												$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
+												static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => '.$sAttValue);
+												
+												$oObj->Set($sAttCode, $sAttValue);
+												break;
+												
+											default:
+											
+												static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => Not supported yet!');
+												break;
+												
+										}
+										
+									}
 									
 								}
+								
+								
 								
 								// This may throw errors. 
 								// Example: using $ldap_object->telephonenumber$ (but empty value) while a NULL value is not allowed
@@ -291,15 +410,15 @@ use \utils;
 								$aPlaceHolders['previous_object->id'] = $iKey;
 								
 								// Only if first object in chain
-								if($sIndex == 0) {
+								if($sObjectIndex == 0) {
 									$aPlaceHolders['first_object->id'] = $iKey;
 								}
 								
-								static::Trace('.... '.$aObject['class'].' for LDAP-object.');
+								static::Trace('.... Created '.$sObjClass.' for LDAP-object.');
 								
 							}
 							catch(Exception $e) {
-								static::Trace('.... Unable to create a new '.$aObject['class'].' for LDAP-object:' . $e->GetMessage());
+								static::Trace('.... Unable to create a new '.$sObjClass.' for LDAP-object: ' . $e->GetMessage());
 							}
 							
 							
@@ -327,24 +446,25 @@ use \utils;
 									$oObj->Set($sAttCode, $sAttValue);
 									$bUpdated = true;
 								}
+								
 							}
 							
 							if($bUpdated == true) {
 								
 								try {
 									$oObj->DBUpdate();
-									static::Trace('.... '.$aObject['class'].' updated for LDAP-object.');
+									static::Trace('.... '.$sObjClass.' updated.');
 								}
 								catch(Exception $e) {
 									static::Trace('Exception while updating object: '.$e->GetMessage());
 								}
 							}
 							else {
-								static::Trace('.... '.$aObject['class'].' NOT updated for LDAP-object.');								
+								static::Trace('.... '.$sObjClass.' was already synced.');								
 							}
 							
 							$aPlaceHolders['previous_object->id'] = $oObj->GetKey();
-							if($sIndex == 0) {
+							if($sObjectIndex == 0) {
 								$aPlaceHolders['first_object->id'] = $oObj->GetKey();
 							}
 							
@@ -368,6 +488,8 @@ use \utils;
 			return;
 			
 		}
+		
+		
 		
 	}
 	

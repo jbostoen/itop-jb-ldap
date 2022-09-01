@@ -131,6 +131,25 @@ SetupWebPage::AddModule(
 							'reconcile_on' => 'SELECT Person WHERE email LIKE "$ldap_object->mail$"'
 						),
 						
+						
+						1 => array(
+							'class' => 'UserLocal',
+							'attributes' => array(
+								'contactid' => '$first_object->id$',
+								'login' => '$ldap_object->mail$',
+								'language' => 'EN US',
+								'status' => 'enabled',
+								'password' => 'ThisIsJustAnExample;PickSomethingComplicatedAndMakeSureItIsUniqueSomehow*123',
+								'profile_list' => array(
+									array(
+										'profileid' => 2,
+									)
+								)
+							),
+							'reconcile_on' => 'SELECT UserLocal WHERE email LIKE "$ldap_object->mail$"'
+							
+						),
+						
 					)
 				),
 				

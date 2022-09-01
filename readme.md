@@ -24,12 +24,12 @@ See documented demo config in module.jb-ldap.php
 
 Placeholders
 
-| Name                        	| Replacement                                                                              	|
-| -----------------------------	| -----------------------------------------------------------------------------------------	|
-| $ldap_object->ldap_attribute$	| Replace ldap_attribute with queried LDAP attribute.                                     	|
-| $first_object->att_code$    	| iTop object. Replace att_code with an attribute of the first found/created object.       	|
-| $previous->att_code$        	| iTop object. Replace att_code with an attribute of the previously found/created object.  	|
-| $current_datetime$        	| Current datetime                                                                      	|
+| Name                        	     | Replacement                                                                              |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `$ldap_object->ldap_attribute$`    | Replace ldap_attribute with queried LDAP attribute.                                     	|
+| `$first_object->att_code$`         | iTop object. Replace att_code with an attribute of the first found/created object.       |
+| `$previous->att_code$`             | iTop object. Replace att_code with an attribute of the previously found/created object.  |
+| `$current_datetime$`               | Current datetime                                                                         |
 
 
 ## Important notes
@@ -59,7 +59,7 @@ Then reboot Apache2.
 
 Upgrading from a version before 27th of April, 2022:
 
-* in the settings: 
+* In the settings: 
 
-  * setting `user_query` has been renamed to `ldap_query`
-  * in the placeholders: `ldap_user` has been renamed to `ldap_object`
+  * Setting `user_query` has been renamed to `ldap_query`
+  * In the placeholders: `ldap_user` has been renamed to `ldap_object`
