@@ -58,7 +58,13 @@ Then reboot Apache2.
 
 ## Upgrade notes
 
-Upgrading from a version before 27th of April, 2022:
+**Upgrading from a version before 23rd of September, 2022:**
+
+In the iTop configuration for this extension, create_objects and update_objects are deprecated since it only allowed to create/update all objects within a sync rule.
+Instead, create and update settings have been added for each object within a sync rule.
+
+
+**Upgrading from a version before 27th of April, 2022:**
 
 In the settings (iTop configuration file):
 * Setting `user_query` has been renamed to `ldap_query`

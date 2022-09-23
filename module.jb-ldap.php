@@ -74,9 +74,6 @@ SetupWebPage::AddModule(
 					// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
 				),
 				
-				'create_objects' => true,
-				'update_objects' => true,
-				
 				// Currently only strings and integers are supported; not lists/arrays/...
 				// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
 				'ldap_attributes' => array(
@@ -120,6 +117,8 @@ SetupWebPage::AddModule(
 						//   Use case: link between a first and second object
 						// - $current_datetime$ will add the current datetime of sync.
 						0 => array(
+							'create' => true,
+							'update' => true,
 							'class' => 'Person',
 							'attributes' => array(
 								'org_id' => 1, // Organization for the object. Required attribute
@@ -133,6 +132,8 @@ SetupWebPage::AddModule(
 						
 						
 						1 => array(
+							'create' => true,
+							'update' => false, // This is an example where updating is unwanted (don't want to reset the password each time)
 							'class' => 'UserLocal',
 							'attributes' => array(
 								'contactid' => '$first_object->id$',

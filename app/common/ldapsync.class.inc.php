@@ -127,7 +127,7 @@ use \utils;
 			
 			static::Trace('. '.str_repeat('-', 25).' Sync rule #'.$sIndex);
 			
-			$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'create_objects', 'update_objects', 'ldap_query'];
+			$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'ldap_query'];
 			
 			// Check if there is enough info to connect to an LDAP
 			foreach($aKeys as $sKey) {
@@ -277,8 +277,8 @@ use \utils;
 						case 0:
 							// Create							
 							
-							if($aSyncRule['create_objects'] != true) {
-								static::Trace('... Object does not exist. Not creating object: create_objects = false');
+							if(isset($aObject['create']) == false || $aObject['create'] != true) {
+								static::Trace('... Object does not exist. Not creating object because "create" is not explicitly set to true.');
 								break;
 							}
 							
@@ -330,7 +330,7 @@ use \utils;
 															else {
 																	
 																$oAttDefLinkedSet = $aSetLinkedobjAttDefs[$sLinkedObjAttCode];
-																	
+																
 																switch(true) {
 																	
 																	case ($oAttDefLinkedSet instanceof AttributeDateTime):
@@ -426,8 +426,8 @@ use \utils;
 							
 						case 1:
 						
-							if($aSyncRule['update_objects'] != true) {
-								static::Trace('... Not updating object. update_objects = false update_object');
+							if(isset($aObject['update']) == false || $aObject['update'] != true) {
+								static::Trace('... Not updating object. Not creating object because "update" is not explicitly set to true.');
 								break;
 							}
 							// Fetch first object from set
@@ -437,15 +437,39 @@ use \utils;
 							static::Trace('... Update ' . $sClassName.'::'.$oObj->GetKey());
 							
 							$bUpdated = false;
+							$aAttDefs = MetaModel::ListAttributeDefs($sObjClass);
 							
 							foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
-								// Allow placeholders in attributes; replace them here
-								$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
 								
-								if($oObj->Get($sAttCode) != $sAttValue) {
-									$oObj->Set($sAttCode, $sAttValue);
-									$bUpdated = true;
+								$oAttDef = $aAttDefs[$sAttCode];
+								
+								switch(true) {
+									
+									case ($oAttDef instanceof AttributeDateTime):
+									case ($oAttDef instanceof AttributeDecimal):
+									case ($oAttDef instanceof AttributeExternalKey):
+									case ($oAttDef instanceof AttributeInteger):
+									case ($oAttDef instanceof AttributeOneWayPassword):
+									case ($oAttDef instanceof AttributeString):
+										
+										// Allow placeholders in attributes; replace them here
+										$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
+										
+										if($oObj->Get($sAttCode) != $sAttValue) {
+											$oObj->Set($sAttCode, $sAttValue);
+											$bUpdated = true;
+										}
+										
+										$oObj->Set($sAttCode, $sAttValue);
+										break;
+										
+									default:
+									
+										static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => Not supported yet!');
+										break;
+										
 								}
+								
 								
 							}
 							
