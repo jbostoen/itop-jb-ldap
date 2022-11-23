@@ -99,9 +99,9 @@ SetupWebPage::AddModule(
 			'sync_rules' => array(
 			
 				array(
-					// Retrieve all users for which an e-mail account is set and for which the admin account name is not 'admin'
+					// Retrieve all non-disabled users for which an e-mail account is set and for which the admin account name is not 'admin'
 					// Hint: 'not set' would be: (!(mail=*)); while (mail=*) means mail MUST be set.
-					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*))',
+					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))',
 					
 					'objects' => array(
 					
@@ -154,6 +154,47 @@ SetupWebPage::AddModule(
 					)
 				),
 				
+				
+				array(
+					// Retrieve all disabled users for which an e-mail account is set and for which the admin account name is not 'admin'
+					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*)(userAccountControl:1.2.840.113556.1.4.803:=2))',
+					
+					'objects' => array(
+					
+						0 => array(
+							'create' => false,
+							'update' => true, // This is an example where only updating is desired
+							'class' => 'UserLocal',
+							'attributes' => array(
+								'status' => 'disabled'
+							),
+							'reconcile_on' => 'SELECT UserLocal WHERE email LIKE "$ldap_object->mail$"'
+							
+						),
+						
+					)
+				),
+				
+				array(
+					// Retrieve all enabled users for which an e-mail account is set and for which the admin account name is not 'admin'
+					// Note: mind that the original rule only allowed to create UserLocal accounts, because it also set the password.
+					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))',
+					
+					'objects' => array(
+					
+						0 => array(
+							'create' => false,
+							'update' => true, // This is an example where only updating is desired
+							'class' => 'UserLocal',
+							'attributes' => array(
+								'status' => 'enabled'
+							),
+							'reconcile_on' => 'SELECT UserLocal WHERE email LIKE "$ldap_object->mail$"'
+							
+						),
+						
+					)
+				),
 				/*
 				
 				array(

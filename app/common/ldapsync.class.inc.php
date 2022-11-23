@@ -125,7 +125,7 @@ use \utils;
 		 */
 		public function ProcessLDAP($sIndex, $aSyncRule) {
 			
-			static::Trace('. '.str_repeat('-', 25).' Sync rule #'.$sIndex);
+			static::Trace('. '.str_repeat('=', 25).' Sync rule #'.$sIndex);
 			
 			$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'ldap_query'];
 			
@@ -205,7 +205,7 @@ use \utils;
 			}
 			
 			// The result has a 'count' key.
-			static::Trace('. Found '.(count($aLDAP_Entries) -1).' LDAP object(s)');
+			static::Trace('. Found '.(count($aLDAP_Entries) -1).' LDAP object(s), for each '.count($aSyncRule['objects']).' iTop object(s) should be created or updated.');
 
 			// Process
 			foreach($aLDAP_Entries as $sKey => $aEntry) {
@@ -251,12 +251,11 @@ use \utils;
 
 				static::Trace('.. '.json_encode($aEntry));
 				
-				static::Trace('.. '.count($aSyncRule['objects']).' object(s) should be created per LDAP object.');
 					
 				// Create objects as needed
 				foreach($aSyncRule['objects'] as $sObjectIndex => $aObject) {
 					
-					static::Trace(str_repeat('=', 25).' Object: #'.$sObjectIndex);
+					static::Trace('.. '.str_repeat('-', 25).' Object rule: #'.$sObjectIndex);
 					
 						
 					if(isset($aObject['class']) == false) {
@@ -506,6 +505,7 @@ use \utils;
 					
 				}
 				
+				static::Trace('..'); // Done, just adding some spacing in the logs
 			
 			}
 	
