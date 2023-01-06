@@ -37,16 +37,12 @@ Placeholders
 
 
 
-## Requirements
-
-iTop extensions
-* [jb-framework](https://github.com/jbostoen/itop-jb-framework)
 
 ## Cookbook
 
 PHP:
-* How to implement a cron job process in iTop (iScheduledProcess)
-* Use DBObjectSearch and DBObjectSet to fetch data
+* How to implement a cron job process in iTop (iScheduledProcess).
+* Use DBObjectSearch and DBObjectSet to fetch data.
 
 ## Hints
 

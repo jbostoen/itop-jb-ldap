@@ -20,7 +20,7 @@ SetupWebPage::AddModule(
 		// Setup
 		//
 		'dependencies' => array(
-			'jb-framework/2.6.0'
+			'jb-news/2.7.0',
 		),
 		'mandatory' => false,
 		'visible' => true,
@@ -55,25 +55,38 @@ SetupWebPage::AddModule(
 			'time' => '03:00',
 			'week_days' => 'monday, tuesday, wednesday, thursday, friday',
 			'enabled' => true,
-			'debug' => false,
+			'trace_log' => false,
 		
 			// Specifies defaults (if any)			
 			// For security, it's highly recommended to only use an account with read-only permissions.
 			// Settings are similar to Combodo's authent-ldap and used as default settings for any sync rule below (the specific sync rules can overrule this)
 			'default_sync_rule' => array(
 			
-				'host' => 'ldap://127.0.0.1', // Note that even for ldaps, the protocol is ldap://
-				'port' => 636, // LDAP: 389, LDAPS: 636
-				'default_user' => 'intranet.domain.org\\someuser', // Mind to escape certain characters (PHP)
-				'default_pwd' => 'somepassword',
-				'base_dn' => 'DC=intranet,DC=domain,DC=org',
-				'start_tls' => false,
-				'options' => array(
-					17 => 3,
-					8 => 0,
-					// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
-				),
+				// LDAP configuration
 				
+				// Option 1: Preferred, takes preceence. Point to an existing LDAP configuration.
+					
+					// 'default' will take the default LDAP server configuration defined in authent-ldap. 
+					// If another value is specified, it should match a named LDAP configuration (authent-ldap: servers, knowitop-multi-ldap-auth: ldap_settings
+					'ldap_config_name' => 'default',
+					
+				// Option 2: Specify an LDAP configuration like this:
+				
+					'host' => '127.0.0.1', // IP address or FQDN (iTop web server must be able to resolve it) of the LDAP server.
+					'port' => 389, // LDAP: 389, LDAPS: 636
+					'default_user' => 'intranet.domain.org\\someuser', // Mind to escape certain characters (PHP)
+					'default_pwd' => 'somepassword',
+					'base_dn' => 'DC=intranet,DC=domain,DC=org',
+					'start_tls' => false,
+					
+					'options' => array(
+						17 => 3,
+						8 => 0,
+						// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
+					),
+					
+					
+					
 				// Currently only strings and integers are supported; not lists/arrays/...
 				// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
 				'ldap_attributes' => array(
@@ -93,6 +106,12 @@ SetupWebPage::AddModule(
 				)
 				
 			),
+			
+					
+			// This setting is optional and defaults to 'authent-ldap'. It's only needed if deviating from authent-ldap.
+			// Alternatively, 'knowitop-multi-ldap-auth' can be used if this third-party extension is in use.
+			'ldap_config_source' => 'authent-ldap',
+			
 			
 			// One or more sync rules should be placed here.
 			// A synchronization rule determined which server to query, which base DN, which options, which LDAP query to use and how to map the LDAP object to an iTop object.

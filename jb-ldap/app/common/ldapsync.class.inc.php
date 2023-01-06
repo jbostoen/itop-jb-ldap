@@ -32,24 +32,20 @@ use \utils;
 	abstract class LDAPSyncProcessor {
 		
 		/**
-		 *
-		 * Constructor
-		 *
-		 * @return void
-		 */
-		public function __construct() {
-			
-		}
-		
-		/**
-		 * Logs trace message
+		 * Logs trace message.
 		 *
 		 * @var \String $sMessage Message
 		 *
 		 * @return void
 		 */
-		public function Trace($sMessage, $bThrowException = false) {
-			echo date('Y-m-d H:i:s').' | '.$sMessage.PHP_EOL;
+		public static function Trace($sMessage, $bThrowException = false) {
+			
+			$bTrace = MetaModel::GetModuleSetting('jb-ldap', 'trace_log', false);
+			
+			if($bTrace == true) {
+				echo date('Y-m-d H:i:s').' | '.$sMessage.PHP_EOL;
+			}
+		
 		}
 
 		/**
@@ -59,7 +55,7 @@ use \utils;
 		 *
 		 * @return void
 		 */
-		public function Throw($sMessage) {
+		public static function Throw($sMessage) {
 			
 			static::Trace($sMessage);
 			throw new Exception($sMessage);
@@ -84,8 +80,8 @@ use \utils;
 			
 			static::Trace('Start processing sync_rules...');
 			
-			$aDefaultSyncRule = utils::GetCurrentModuleSetting('default_sync_rule', []);
-			$aSyncRules = utils::GetCurrentModuleSetting('sync_rules', []);
+			$aDefaultSyncRule = MetaModel::GetModuleSetting('jb-ldap', 'default_sync_rule', []);
+			$aSyncRules = MetaModel::GetModuleSetting('jb-ldap', 'sync_rules', []);
 			
 			// Process each LDAP.
 			// Each LDAP can have a different settings.
@@ -127,40 +123,50 @@ use \utils;
 			
 			static::Trace('. '.str_repeat('=', 25).' Sync rule #'.$sIndex);
 			
-			$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'ldap_query'];
+				static::GetLDAPConfig($aSyncRule);
 			
-			// Check if there is enough info to connect to an LDAP
-			foreach($aKeys as $sKey) {
-				if(isset($aSyncRule[$sKey]) == false) {
-					static::Throw('Error: sync rule (index '.$sIndex.'): "'.$sKey.'" is missing.');
+			// - Validate LDAP configuration
+				
+				$aKeys = ['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'options', 'ldap_attributes', 'start_tls', 'ldap_query'];
+				$aMissingKeys = [];
+				
+				// Check if there is enough info to connect to an LDAP
+				foreach($aKeys as $sKey) {
+					if(isset($aSyncRule[$sKey]) == false) {
+						$aMissingKeys[] = $sKey;
+					}
+				}
+				
+				if(count($aMissingKeys) > 0) {
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): invalid LDAP configuration: no value set for "'.implode('", "', $aMissingKeys).'"');
 					return;
 				}
-			}
-			
-			if(is_array($aSyncRule['options']) == false) {
-				static::Throw('Error: sync rule (index '.$sIndex.'): "options" expects an array');
-			}
-			
+				
+				
+				if(is_array($aSyncRule['options']) == false) {
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): "options" expects an array');
+				}
+				
 			
 			// Create objects as needed
 			foreach($aSyncRule['objects'] as $sIndex => $aObject) {
 				
 				// OQL query specified?
 				if(isset($aObject['reconcile_on']) == false) {
-					static::Throw('Error: sync rule (index '.$sIndex.'): no "reconcile_on" specified for object index '.$sIndex);
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): no "reconcile_on" specified for object index '.$sIndex);
 				}
 				
 				// Valid class specified?
 				preg_match('/SELECT ([A-z0-9]{1,}).*$/', $aObject['reconcile_on'], $aMatches);
 				
 				if(count($aMatches) < 2) {
-					static::Throw('Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex);
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex);
 				}
 				
 				$sClass = $aMatches[1];
 				
 				if(MetaModel::IsValidClass($sClass) == false) {
-					static::Throw('Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex.' - class: '.$sClass);					
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): invalid "reconcile_on" specified for object index '.$sIndex.' - class: '.$sClass);					
 				}
 				
 				// Valid attributes specified in configuration?
@@ -168,7 +174,7 @@ use \utils;
 				$aValidAttributes = MetaModel::GetAttributesList($sClass);
 				foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
 					if(in_array($sAttCode, $aValidAttributes) == false) {
-						static::Throw('Error: sync rule (index '.$sIndex.'): invalid attribute "'.$sAttCode.'" specified for object index '.$sIndex.' - class: '.$sClass);	
+						static::Throw('.. Error: sync rule (index '.$sIndex.'): invalid attribute "'.$sAttCode.'" specified for object index '.$sIndex.' - class: '.$sClass);	
 					}
 				}
 				
@@ -177,28 +183,40 @@ use \utils;
 			
 			// Connect
 			// ldap_set_option(null, LDAP_OPT_DEBUG_LEVEL, 7); // Enable for debugging issues with XAMPP and LDAPS
-			$oConnection = @ldap_connect($aSyncRule['host'], $aSyncRule['port']);
+			$hConnection = @ldap_connect($aSyncRule['host'], $aSyncRule['port']);
 			
-			if($oConnection === false) {
-				static::Throw('Error: sync rule (index '.$sIndex.'): unable to connect to the LDAP-server: '.$aSyncRule['host'].':'.$aSyncRule['port']);
+			if($hConnection === false) {
+				static::Throw('.. Error: sync rule (index '.$sIndex.'): unable to connect to the LDAP-server: '.$aSyncRule['host'].':'.$aSyncRule['port']);
 			}
 			
 			foreach($aSyncRule['options'] as $sKey => $uValue) {
-				if(!ldap_set_option($oConnection, $sKey, $uValue)) {
-					static::Throw('Error: sync rule (index '.$sIndex.'): invalid LDAP-option or value: '.$sKey);
+				if(!ldap_set_option($hConnection, $sKey, $uValue)) {
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): invalid LDAP-option or value: '.$sKey);
 				}
 			}
 			
+			if($aSyncRule['start_tls'] == true) {
+				
+				$hStartTLS = ldap_start_tls($hConnection);
+			
+				if($hStartTLS == false) {
+					
+					static::Throw('.. Error: sync rule (index '.$sIndex.'): start TLS failed.');
+					
+				}
+			}
+			
+			
 			// Try to bind
-			@ldap_bind($oConnection, $aSyncRule['default_user'], $aSyncRule['default_pwd']) or static::Throw('Error: sync rule (index '.$sIndex.'): unable to bind to server '.$aSyncRule['host'].':'.$aSyncRule['port'].' with user '.$aSyncRule['default_user']);
+			@ldap_bind($hConnection, $aSyncRule['default_user'], $aSyncRule['default_pwd']) or static::Throw('Error: sync rule (index '.$sIndex.'): unable to bind to server '.$aSyncRule['host'].':'.$aSyncRule['port'].' with user '.$aSyncRule['default_user']);
 
 			static::Trace('. LDAP Filter: '.$aSyncRule['ldap_query']);
 
-			$oResult = ldap_search($oConnection, $aSyncRule['base_dn'], $aSyncRule['ldap_query'], $aSyncRule['ldap_attributes']);
+			$oResult = ldap_search($hConnection, $aSyncRule['base_dn'], $aSyncRule['ldap_query'], $aSyncRule['ldap_attributes']);
 			$aLDAP_Entries = [];
 
 			if($oResult !== false) {
-				$aLDAP_Entries = ldap_get_entries($oConnection, $oResult);
+				$aLDAP_Entries = ldap_get_entries($hConnection, $oResult);
 			}
 			else {
 				static::Throw('Error: sync rule (index '.$sIndex.'): no results');
@@ -510,6 +528,102 @@ use \utils;
 			}
 	
 			return;
+			
+		}
+		
+		/**
+		 * Drives the LDAP config from other existing configuration.
+		 *
+		 * @param \Array $aFinalLDAPConfig Configuration which includes either 'ldap_config_name' or all these keys: 'host', 'port', 'default_user', 'default_pwd', 'base_dn', 'start_tls', 'options'
+		 *
+		 * @return void
+		 *
+		 */
+		public static function GetLDAPConfig(&$aFinalLDAPConfig) {
+			
+			if(isset($aFinalLDAPConfig['ldap_config_name']) == false) {
+				
+				// Nothing to do
+				static::Trace('.. Not pointing to an existing LDAP configuration.');
+				return;
+				
+			}
+			
+			$sConfigName = $aFinalLDAPConfig['ldap_config_name'];
+			$sSourceConfig = MetaModel::GetModuleSetting('jb-ldap', 'ldap_config_source', 'authent-ldap');
+			
+			static::Trace('.. Use this LDAP config from source "'.$sSourceConfig.'": "'.$sConfigName.'"');
+				
+			if($sSourceConfig == 'authent-ldap') {
+				
+				// Grab from authent-ldap
+				if($sConfigName == 'default') {
+					
+					foreach(['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'start_tls', 'options'] as $sSetting) {
+						
+						if($sSetting == 'options') {
+							$aFinalLDAPConfig[$sSetting] = MetaModel::GetModuleSetting('authent-ldap', $sSetting, []);
+						}
+						elseif($sSetting == 'start_tls') {
+							$aFinalLDAPConfig[$sSetting] = MetaModel::GetModuleSetting('authent-ldap', $sSetting, false);
+						}
+						else {
+							$aFinalLDAPConfig[$sSetting] = MetaModel::GetModuleSetting('authent-ldap', $sSetting, '');
+						}
+						
+					}
+					
+					static::Trace('.. Used default configuration from authent-ldap.');
+					return;
+					
+				}
+				else {
+				
+					$aServerConfigs = MetaModel::GetModuleSetting('authent-ldap', 'servers', []);
+					
+				}
+				
+			}
+			// Note: this will be deprecated after 2.7 is phased out, unless someone requests to keep this for iTop 3.0 too (no good reason since the built-in authent-ldap does the same thing).
+			elseif($sSourceConfig == 'knowitop') {
+				
+				$aServerConfigs = MetaModel::GetModuleSetting('knowitop-multi-ldap-auth', 'ldap_settings', []);
+				
+			}
+			else {
+				
+				static::Trace('.. Unsupported "ldap_config_source": '.$sSourceConfig);
+				
+			}
+			
+			static::Trace('.. Found '.count($aServerConfigs).' LDAP server configurations: "'.implode('", "', array_keys($aServerConfigs)).'"');
+			
+			// Does this ldap config exist?
+			if(isset($aServerConfigs[$sConfigName]) == false) {
+				
+				static::Trace('.. Missing configuration: '.$sConfigName);
+			
+				// Nothing to do
+				return;
+				
+			}
+			
+			$aServerConfig = $aServerConfigs[$sConfigName];
+			
+			foreach(['host', 'port', 'default_user', 'default_pwd', 'base_dn', 'start_tls', 'options'] as $sSetting) {
+			
+				// Validate already before passing on.
+				if(
+					(in_array($sSetting, ['host', 'default_user', 'default_pwd', 'base_dn']) == true && is_string($aServerConfig[$sSetting]) == true) ||
+					($sSetting == 'options' && is_array($aServerConfig[$sSetting])) || 
+					($sSetting == 'start_tls' && is_bool($aServerConfig[$sSetting]) == true) ||
+					($sSetting == 'port' && is_int($aServerConfig[$sSetting]) == true)
+				) { 
+					$aFinalLDAPConfig[$sSetting] = $aServerConfig[$sSetting];
+				}
+				
+			}
+			
 			
 		}
 		
