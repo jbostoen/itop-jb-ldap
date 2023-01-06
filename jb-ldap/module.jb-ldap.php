@@ -85,8 +85,6 @@ SetupWebPage::AddModule(
 						// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
 					),
 					
-					
-					
 				// Currently only strings and integers are supported; not lists/arrays/...
 				// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
 				'ldap_attributes' => array(
@@ -114,7 +112,11 @@ SetupWebPage::AddModule(
 			
 			
 			// One or more sync rules should be placed here.
-			// A synchronization rule determined which server to query, which base DN, which options, which LDAP query to use and how to map the LDAP object to an iTop object.
+			//
+			// Each object rule can be given a name instead of an index if wanted, but there's no different behavior.
+			//
+			// A synchronization rule determines which LDAP server to query (all config from 'default_sync_rule' can be overruled here by specifying the keys again).
+			// It also contains info on how to map the LDAP object to an iTop object.
 			'sync_rules' => array(
 			
 				array(
@@ -124,8 +126,11 @@ SetupWebPage::AddModule(
 					
 					'objects' => array(
 					
-						// List iTop classes where the info can be used. Objects will be created or updated (unique match), not deleted.
-						// In this example, one iTop object (Person) will be created; but it's possible to add multiple objects here.
+						// List iTop classes where the info can be used.
+						// Objects will be created or updated (unique match) if enabled, but they will never be deleted.
+						// In this example, one iTop object (Person) will be created; and an iTop user account for this person.
+						//
+						// Each object rule can be given a name instead of an index if wanted, but there's no different behavior.
 						//
 						// Placeholders (can be used to set new attribute values and in OQL queries)
 						//
