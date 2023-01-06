@@ -61,7 +61,7 @@ class ScheduledProcessLDAPSync extends AbstractWeeklyScheduledProcess {
 		// Ignore time limit, it should run nightly and it will take some time.
 		try {
 			
-			LDAPSyncProcessor::ProcessLDAPs();
+			LDAPSyncProcessor::ProcessRules();
 			
 		}
 		catch(Exception $e) {

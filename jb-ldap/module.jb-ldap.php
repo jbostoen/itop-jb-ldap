@@ -57,51 +57,50 @@ SetupWebPage::AddModule(
 			'enabled' => true,
 			'trace_log' => false,
 		
-			// Specifies defaults (if any)			
-			// For security, it's highly recommended to only use an account with read-only permissions.
-			// Settings are similar to Combodo's authent-ldap and used as default settings for any sync rule below (the specific sync rules can overrule this)
+			// Specifies defaults (if any)
+			// Any setting in the example below of a more specific sync rule, can be used here - and the other way around.
+			// The specific rules (later in this configuration) inherit all settings which are defined here.
+			// In practice, in the more recent versions of this extension, "ldap_servers" is the most likely one to be used.
 			'default_sync_rule' => array(
 			
-				// LDAP configuration
-				
-				// Option 1: Preferred, takes preceence. Point to an existing LDAP configuration.
+				// LDAP servers to query
+				'ldap_servers' => array(
+
+					// Naming here is optional.
+					'FirstServer' => array(
 					
-					// 'default' will take the default LDAP server configuration defined in authent-ldap. 
-					// If another value is specified, it should match a named LDAP configuration (authent-ldap: servers, knowitop-multi-ldap-auth: ldap_settings
-					'ldap_config_name' => 'default',
+						// Option 1: Preferred, takes precedence. Point to an existing LDAP configuration.
+							
+							// 'default' will take the default LDAP server configuration defined in authent-ldap. 
+							// If another value is specified, it should match a named LDAP configuration.
+							// Possible values are: 
+							// "authent-ldap" - Configure servers under the authent-ldap settings -> servers
+							// "jb-ldap" - Configure servers under the jb-ldap settings -> servers (to define additional servers not used in other configs)
+							// "knowitop-multi-ldap-auth" - Configure servers under the knowitop-multi-ldap-auth settings -> ldap_settings
+							'ldap_config_name' => 'default',
+		
+					),
+		
 					
-				// Option 2: Specify an LDAP configuration like this:
-				
-					'host' => '127.0.0.1', // IP address or FQDN (iTop web server must be able to resolve it) of the LDAP server.
-					'port' => 389, // LDAP: 389, LDAPS: 636
-					'default_user' => 'intranet.domain.org\\someuser', // Mind to escape certain characters (PHP)
-					'default_pwd' => 'somepassword',
-					'base_dn' => 'DC=intranet,DC=domain,DC=org',
-					'start_tls' => false,
+					// Option 2: Specify an LDAP configuration like this:
+					'SecondServer' => array(
 					
-					'options' => array(
-						17 => 3,
-						8 => 0,
-						// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
+							'host' => '127.0.0.1', // IP address or FQDN (iTop web server must be able to resolve it) of the LDAP server.
+							'port' => 389, // LDAP: 389, LDAPS: 636
+							'default_user' => 'intranet.domain.org\\someuser', // Mind to escape certain characters (PHP). For security, it's highly recommended to only use an account with read-only permissions.
+							'default_pwd' => 'somepassword',
+							'base_dn' => 'DC=intranet,DC=domain,DC=org',
+							'start_tls' => false,
+							
+							'options' => array(
+								17 => 3,
+								8 => 0,
+								// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
+							),
+					
 					),
 					
-				// Currently only strings and integers are supported; not lists/arrays/...
-				// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
-				'ldap_attributes' => array(
-					'sn',
-					'givenname',
-					'mail',
-					'telephonenumber',
-					'company',
-					'samaccountname',
-					'userprincipalname',
-					'displayname'
-					// 'objectsid', -> sadly this is hexadecimal
 				),
-				
-				'objects' => array(
-				
-				)
 				
 			),
 			
@@ -119,10 +118,25 @@ SetupWebPage::AddModule(
 			// It also contains info on how to map the LDAP object to an iTop object.
 			'sync_rules' => array(
 			
-				array(
+				'CreateUsers' => array(
+				
 					// Retrieve all non-disabled users for which an e-mail account is set and for which the admin account name is not 'admin'
 					// Hint: 'not set' would be: (!(mail=*)); while (mail=*) means mail MUST be set.
 					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))',
+					
+					// Currently only strings and integers are supported; not lists/arrays/...
+					// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
+					'ldap_attributes' => array(
+						'sn',
+						'givenname',
+						'mail',
+						'telephonenumber',
+						'company',
+						'samaccountname',
+						'userprincipalname',
+						'displayname'
+						// 'objectsid', -> sadly this is hexadecimal
+					),
 					
 					'objects' => array(
 					
@@ -140,7 +154,7 @@ SetupWebPage::AddModule(
 						// - $previous_object->id$
 						//   Use case: link between a first and second object
 						// - $current_datetime$ will add the current datetime of sync.
-						0 => array(
+						'SyncPerson' => array(
 							'create' => true,
 							'update' => true,
 							'class' => 'Person',
@@ -155,7 +169,7 @@ SetupWebPage::AddModule(
 						),
 						
 						
-						1 => array(
+						'CreateUser' => array(
 							'create' => true,
 							'update' => false, // This is an example where updating is unwanted (don't want to reset the password each time)
 							'class' => 'UserLocal',
@@ -179,9 +193,24 @@ SetupWebPage::AddModule(
 				),
 				
 				
-				array(
+				'DisableUsers' => array(
 					// Retrieve all disabled users for which an e-mail account is set and for which the admin account name is not 'admin'
 					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*)(userAccountControl:1.2.840.113556.1.4.803:=2))',
+					
+					
+					// Currently only strings and integers are supported; not lists/arrays/...
+					// These LDAP attributes will be fetched and are then available in the $ldap_object->ldap_att$ placeholder
+					'ldap_attributes' => array(
+						'sn',
+						'givenname',
+						'mail',
+						'telephonenumber',
+						'company',
+						'samaccountname',
+						'userprincipalname',
+						'displayname'
+						// 'objectsid', -> sadly this is hexadecimal
+					),
 					
 					'objects' => array(
 					
@@ -199,7 +228,7 @@ SetupWebPage::AddModule(
 					)
 				),
 				
-				array(
+				'EnableUsers' => array(
 					// Retrieve all enabled users for which an e-mail account is set and for which the admin account name is not 'admin'
 					// Note: mind that the original rule only allowed to create UserLocal accounts, because it also set the password.
 					'ldap_query' => '(&(objectclass=user)(objectcategory=person)(!(sAMAccountName=admin))(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))',
@@ -219,9 +248,8 @@ SetupWebPage::AddModule(
 						
 					)
 				),
-				/*
 				
-				array(
+				'SyncComputers' => array(
 					// Obtain all computers
 					'ldap_query' => '(objectClass=computer)',
 					'ldap_attributes' => array('name'),
@@ -239,7 +267,6 @@ SetupWebPage::AddModule(
 					)
 				),
 
-				*/
 
 			)
 		
