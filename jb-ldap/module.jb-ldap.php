@@ -57,7 +57,7 @@ SetupWebPage::AddModule(
 			'enabled' => true,
 			'trace_log' => false,
 		
-			// Specifies defaults (if any)
+			// Specifies defaults (if any).
 			// Any setting in the example below of a more specific sync rule, can be used here - and the other way around.
 			// The specific rules (later in this configuration) inherit all settings which are defined here.
 			// In practice, in the more recent versions of this extension, "ldap_servers" is the most likely one to be used.
@@ -69,7 +69,7 @@ SetupWebPage::AddModule(
 					// Naming here is optional.
 					'FirstServer' => array(
 					
-						// Option 1: Preferred, takes precedence. Point to an existing LDAP configuration.
+						// Option 1: Preferred, takes precedence. Point to an existing LDAP configuration to use the host, port, user, password, baase DN, start TLS and options specified in that configuration.
 							
 							// 'default' will take the default LDAP server configuration defined in authent-ldap. 
 							// If another value is specified, it should match a named LDAP configuration.
@@ -78,6 +78,12 @@ SetupWebPage::AddModule(
 							// "jb-ldap" - Configure servers under the jb-ldap settings -> servers (to define additional servers not used in other configs)
 							// "knowitop-multi-ldap-auth" - Configure servers under the knowitop-multi-ldap-auth settings -> ldap_settings
 							'ldap_config_name' => 'default',
+							
+						// Custom placeholders. This array contains place holders which can be used in "ldap_query", "objects" -> "reconcile_on", "objects" -> "attributes".
+						// If $ldap_specific_placeholder->org_id$ is used in any of the settings specified above, it will be replaced with its configured value.
+							'ldap_specific_placeholders' => array(
+								'org_id' => 1
+							),
 		
 					),
 		
@@ -96,6 +102,11 @@ SetupWebPage::AddModule(
 								17 => 3,
 								8 => 0,
 								// LDAP_OPT_X_TLS_REQUIRE_CERT => 0,
+							),
+							
+						// See above.
+							'ldap_specific_placeholders' => array(
+								'org_id' => 2
 							),
 					
 					),
@@ -159,7 +170,7 @@ SetupWebPage::AddModule(
 							'update' => true,
 							'class' => 'Person',
 							'attributes' => array(
-								'org_id' => 1, // Organization for the object. Required attribute
+								'org_id' => '$ldap_specific_placeholder->org_id$', // Organization for the object. Required attribute. Use placeholder defined above.
 								'email' => '$ldap_object->mail$',
 								'first_name' => '$ldap_object->givenname$',
 								'name' => '$ldap_object->sn$',
@@ -258,7 +269,7 @@ SetupWebPage::AddModule(
 						0 => array(
 							'class' => 'PC',
 							'attributes' => array(
-								'org_id' => 1, // Organization for the object. Required attribute
+								'org_id' => '$ldap_specific_placeholder->org_id$', // Organization for the object. Required attribute.
 								'name' => '$ldap_object->name$',
 							),
 							'reconcile_on' => 'SELECT PC WHERE name LIKE "$ldap_object->name$"'

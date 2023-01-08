@@ -224,6 +224,25 @@ use \utils;
 				// The result has a 'count' key.
 				static::Trace('. Found '.(count($aLDAP_Entries) -1).' LDAP object(s), for each '.count($aSyncRule['objects']).' iTop object(s) should be created or updated.');
 
+				// - Default placeholders
+				
+					$aDefaultPlaceholders = [
+						'current_datetime' => date('Y-m-d H:i:s'),
+						'first_object->id' => -1
+					];
+					
+					// Custom  placeholders - linked to each different LDAP server
+					if(isset($aLDAPQueryConfig['ldap_specific_placeholders']) == true && is_array($aLDAPQueryConfig['ldap_specific_placeholders']) == true) {
+						
+						foreach($aLDAPQueryConfig['ldap_specific_placeholders'] as $sPlaceholderName => $sValue) {
+							
+							$aDefaultPlaceholders['ldap_specific_placeholder->'.$sPlaceholderName] = $sValue;
+							
+						}
+						
+					}
+					
+
 				// Process
 				foreach($aLDAP_Entries as $sKey => $aEntry) {
 					
@@ -232,10 +251,8 @@ use \utils;
 						continue;
 					}
 					
-					// Start for each LDAP object with an empty placeholders set
-					$aPlaceHolders = [];
-					$aPlaceHolders['current_datetime'] = date('Y-m-d H:i:s');
-					$aPlaceHolders['first_object->id'] = -1;
+					// Start for each LDAP object with the default placeholder values
+					$aPlaceHolders = $aDefaultPlaceholders;
 					
 					// All other entries should have the values listed.
 					// Since the limitation in this extension is that it should be a string/integer,
