@@ -28,12 +28,13 @@ See documented demo configuration in [module.jb-ldap.php](module.jb-ldap.php)
 
 Placeholders
 
-| Name                        	     | Replacement                                                                              |
-| ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `$ldap_object->ldap_attribute$`    | Replace ldap_attribute with queried LDAP attribute.                                     	|
-| `$first_object->att_code$`         | iTop object. Replace att_code with an attribute of the first found/created object.       |
-| `$previous->att_code$`             | iTop object. Replace att_code with an attribute of the previously found/created object.  |
-| `$current_datetime$`               | Current datetime                                                                         |
+| Name                        	     | Replacement                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `$ldap_object->ldap_attribute$`    | Replace ldap_attribute with queried LDAP attribute.                                        |
+| `$first_object->att_code$`         | iTop object. Replace att_code with an attribute of the first found/created object.         |
+| `$previous->att_code$`             | iTop object. Replace att_code with an attribute of the previously found/created object     |
+| `$current_datetime$`               | Current datetime.                                                                          |
+| `$ldap_specific_placeholder->key$` | Placeholders linked to this LDAP configuration. Replace key with a configured placeholder. |                                                                     |
 
 
 
