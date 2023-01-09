@@ -1,16 +1,16 @@
 <?php
 
 /**
- * @copyright   Copyright (c) 2019-2022 Jeffrey Bostoen
+ * @copyright   Copyright (c) 2019-2023 Jeffrey Bostoen
  * @license     https://www.gnu.org/licenses/gpl-3.0.en.html
- * @version     2.7.220427
+ * @version     2.7.230109
  *
  * iTop module definition file
  */
 
 SetupWebPage::AddModule(
 	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
-	'jb-ldap/2.7.220901',
+	'jb-ldap/2.7.230109',
 	array(
 		// Identification
 		//
