@@ -434,7 +434,17 @@ use \utils;
 									// Example: using $ldap_object->telephonenumber$ (but empty value) while a NULL value is not allowed
 									// Silently supress
 									try {
-										$iKey = $oObj->DBInsert();
+										
+										// Simulation?
+										if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
+											static::Trace('..... Simulating. No object will be created. Fictional object ID will be given: -123');
+											$iKey = -133;
+										}
+										else {
+											$iKey = $oObj->DBInsert();
+											static::Trace('.... Created '.$sObjClass.' for LDAP-object.');
+										}
+										
 									}
 									catch(Exception $e) {
 										static::Throw('Exception occurred while creating object: '.$e->GetMessage());
@@ -447,7 +457,6 @@ use \utils;
 										$aPlaceHolders['first_object->id'] = $iKey;
 									}
 									
-									static::Trace('.... Created '.$sObjClass.' for LDAP-object.');
 									
 								}
 								catch(Exception $e) {
@@ -509,8 +518,14 @@ use \utils;
 								if($bUpdated == true) {
 									
 									try {
-										$oObj->DBUpdate();
-										static::Trace('.... '.$sObjClass.' updated.');
+										// Simulation?
+										if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
+											static::Trace('..... Simulating. No object will really be updated.');
+										}
+										else {
+											$oObj->DBUpdate();
+											static::Trace('.... '.$sObjClass.' updated.');
+										}
 									}
 									catch(Exception $e) {
 										static::Trace('Exception while updating object: '.$e->GetMessage());

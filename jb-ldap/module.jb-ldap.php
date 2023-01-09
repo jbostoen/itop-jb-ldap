@@ -113,6 +113,9 @@ SetupWebPage::AddModule(
 					
 				),
 				
+				// This is a completely optional setting, it allows to see a full output but in the very end just doesn't create/update the itop objects. Defaults to false.
+				'simulate' => true,
+				
 			),
 			
 					
