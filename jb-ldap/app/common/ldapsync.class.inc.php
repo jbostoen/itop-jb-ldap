@@ -287,6 +287,8 @@ use \utils;
 					
 						
 					// Create objects as needed
+					$bIsFirst = true;
+					
 					foreach($aSyncRule['objects'] as $sObjectIndex => $aObject) {
 						
 						static::Trace('.. '.str_repeat('-', 25).' Object rule: "'.$sObjectIndex.'"');
@@ -437,7 +439,7 @@ use \utils;
 										
 										// Simulation?
 										if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
-											static::Trace('..... Simulating. No object will be created. Fictional object ID will be given: -123');
+											static::Trace('..... Simulating. No object will be created. Fictional object ID will be given: -123 for '.get_class($oObj).' - '.$oObj->Get('friendlyname'));
 											$iKey = -133;
 										}
 										else {
@@ -520,7 +522,7 @@ use \utils;
 									try {
 										// Simulation?
 										if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
-											static::Trace('..... Simulating. No object will really be updated.');
+											static::Trace('..... Simulating. No object will really be updated for '.get_class($oObj).' - '.$oObj->Get('friendlyname'));
 										}
 										else {
 											$oObj->DBUpdate();
@@ -536,8 +538,10 @@ use \utils;
 								}
 								
 								$aPlaceHolders['previous_object->id'] = $oObj->GetKey();
-								if($sObjectIndex == 0) {
+								
+								if($bIsFirst == true) {
 									$aPlaceHolders['first_object->id'] = $oObj->GetKey();
+									$bIsFirst = false;
 								}
 								
 								break;
