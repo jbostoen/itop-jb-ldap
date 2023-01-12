@@ -123,6 +123,8 @@ use \utils;
 			
 			static::Trace('. '.str_repeat('=', 25).' Sync rule "'.$sIndex.'"');
 			
+			$bFictionalId = -100;
+			
 			if(isset($aSyncRule['ldap_servers']) == false) {
 				
 				static::Throw('.. Error: sync rule (index '.$sIndex.'): no LDAP servers specified.');
@@ -313,156 +315,165 @@ use \utils;
 								// Create							
 								
 								if(isset($aObject['create']) == false || $aObject['create'] != true) {
+									
+									// Set for next rules
+									$aPlaceHolders['previous_object->id'] = -1;
+									
 									static::Trace('... Object does not exist. Not creating object because "create" is not explicitly set to true.');
 									break;
 								}
-								
-								static::Trace('... Object does not exist. Create ' . $sClassName);
-								
-								try {
-									
-									$oObj = MetaModel::NewObject($sObjClass);
-									
-									$aAttDefs = MetaModel::ListAttributeDefs($sObjClass);
-									$aAttList = MetaModel::GetAttributesList($sObjClass);
-									
-									foreach($aObject['attributes'] as $sAttCode => $value) {
+								else {
 										
-										if(in_array($sAttCode, $aAttList) == false) {
+									
+									static::Trace('... Object does not exist. Create ' . $sClassName);
+									
+									try {
+										
+										$oObj = MetaModel::NewObject($sObjClass);
+										
+										$aAttDefs = MetaModel::ListAttributeDefs($sObjClass);
+										$aAttList = MetaModel::GetAttributesList($sObjClass);
+										
+										foreach($aObject['attributes'] as $sAttCode => $value) {
 											
-											static::Trace('..... Invalid attribute code: '.$sAttCode);
-											
-										}
-										else {
-											
-											// More types could be added at some point
-											$oAttDef = $aAttDefs[$sAttCode];
-											switch(true) {
+											if(in_array($sAttCode, $aAttList) == false) {
 												
-												case ($oAttDef instanceof AttributeLinkedSet):
-												case ($oAttDef instanceof AttributeLinkedSetIndirect):
+												static::Trace('..... Invalid attribute code: '.$sAttCode);
 												
-											
-													/** @var \ormLinkedSet $oSet Linked set **/
-													$oSet = $oObj->Get($sAttCode);
-													$sLnkClass = $oAttDef->GetLinkedClass();
-													$aSetLinkedobjAttDefs = MetaModel::ListAttributeDefs($sLnkClass);
-													$aSetLinkedObjAttList = MetaModel::GetAttributesList($sLnkClass);
+											}
+											else {
+												
+												// More types could be added at some point
+												$oAttDef = $aAttDefs[$sAttCode];
+												switch(true) {
 													
-													static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') - linked class: '.$sLnkClass.' - '.count($value).' linked objects');
+													case ($oAttDef instanceof AttributeLinkedSet):
+													case ($oAttDef instanceof AttributeLinkedSetIndirect):
 													
-													// - Linked object
+												
+														/** @var \ormLinkedSet $oSet Linked set **/
+														$oSet = $oObj->Get($sAttCode);
+														$sLnkClass = $oAttDef->GetLinkedClass();
+														$aSetLinkedobjAttDefs = MetaModel::ListAttributeDefs($sLnkClass);
+														$aSetLinkedObjAttList = MetaModel::GetAttributesList($sLnkClass);
 														
-														foreach($value as $aLinkedSetObject) {
+														static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') - linked class: '.$sLnkClass.' - '.count($value).' linked objects');
 														
-															$oLinkedObject = MetaModel::NewObject($sLnkClass, []);
+														// - Linked object
+															
+															foreach($value as $aLinkedSetObject) {
+															
+																$oLinkedObject = MetaModel::NewObject($sLnkClass, []);
 
-															foreach($aLinkedSetObject as $sLinkedObjAttCode => $sLinkedObjAttValue) {
-																
-																if(in_array($sLinkedObjAttCode, $aSetLinkedObjAttList) == false) {
-																	static::Trace('...... Invalid attribute code: '.$sLinkedObjAttCode);
-																}
-																else {
-																		
-																	$oAttDefLinkedSet = $aSetLinkedobjAttDefs[$sLinkedObjAttCode];
+																foreach($aLinkedSetObject as $sLinkedObjAttCode => $sLinkedObjAttValue) {
 																	
-																	switch(true) {
+																	if(in_array($sLinkedObjAttCode, $aSetLinkedObjAttList) == false) {
+																		static::Trace('...... Invalid attribute code: '.$sLinkedObjAttCode);
+																	}
+																	else {
+																			
+																		$oAttDefLinkedSet = $aSetLinkedobjAttDefs[$sLinkedObjAttCode];
 																		
-																		case ($oAttDefLinkedSet instanceof AttributeDateTime):
-																		case ($oAttDefLinkedSet instanceof AttributeDecimal):
-																		case ($oAttDefLinkedSet instanceof AttributeExternalKey):
-																		case ($oAttDefLinkedSet instanceof AttributeInteger):
-																		case ($oAttDefLinkedSet instanceof AttributeOneWayPassword):
-																		case ($oAttDefLinkedSet instanceof AttributeString):
-																													
-																			// Allow placeholders in attributes; replace them here
-																			$sLinkedObjAttValue = MetaModel::ApplyParams($sLinkedObjAttValue, $aPlaceHolders);
-																			static::Trace('...... '.$sLinkedObjAttCode.' ('.get_class($oAttDef).') => '.$sLinkedObjAttValue);
+																		switch(true) {
 																			
-																			$oLinkedObject->Set($sLinkedObjAttCode, $sLinkedObjAttValue);
-																			break;
+																			case ($oAttDefLinkedSet instanceof AttributeDateTime):
+																			case ($oAttDefLinkedSet instanceof AttributeDecimal):
+																			case ($oAttDefLinkedSet instanceof AttributeExternalKey):
+																			case ($oAttDefLinkedSet instanceof AttributeInteger):
+																			case ($oAttDefLinkedSet instanceof AttributeOneWayPassword):
+																			case ($oAttDefLinkedSet instanceof AttributeString):
+																														
+																				// Allow placeholders in attributes; replace them here
+																				$sLinkedObjAttValue = MetaModel::ApplyParams($sLinkedObjAttValue, $aPlaceHolders);
+																				static::Trace('...... '.$sLinkedObjAttCode.' ('.get_class($oAttDef).') => '.$sLinkedObjAttValue);
+																				
+																				$oLinkedObject->Set($sLinkedObjAttCode, $sLinkedObjAttValue);
+																				break;
+																				
+																			default:
 																			
-																		default:
+																				static::Trace('...... '.$sLinkedObjAttCode.' ('.get_class($oAttDefLinkedSet).') not supported yet at this level.');
+																				break;
+																				
+																		}
 																		
-																			static::Trace('...... '.$sLinkedObjAttCode.' ('.get_class($oAttDefLinkedSet).') not supported yet at this level.');
-																			break;
-																			
 																	}
 																	
 																}
+
+																$oSet->AddItem($oLinkedObject);
 																
 															}
-
-															$oSet->AddItem($oLinkedObject);
-															
-														}
-													
-															
-														$oObj->Set($sAttCode, $oSet);
-													
-														static::Trace('..... ' . $sAttCode . ': added '.$oSet->Count().' links');
 														
-													break;
+																
+															$oObj->Set($sAttCode, $oSet);
+														
+															static::Trace('..... ' . $sAttCode . ': added '.$oSet->Count().' links');
+															
+														break;
+														
+													case ($oAttDef instanceof AttributeDateTime):
+													case ($oAttDef instanceof AttributeDecimal):
+													case ($oAttDef instanceof AttributeExternalKey):
+													case ($oAttDef instanceof AttributeInteger):
+													case ($oAttDef instanceof AttributeOneWayPassword):
+													case ($oAttDef instanceof AttributeString):
+																								
+														// Allow placeholders in attributes; replace them here
+														$sAttValue = $value;
+														$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
+														static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => '.$sAttValue);
+														
+														$oObj->Set($sAttCode, $sAttValue);
+														break;
+														
+													default:
 													
-												case ($oAttDef instanceof AttributeDateTime):
-												case ($oAttDef instanceof AttributeDecimal):
-												case ($oAttDef instanceof AttributeExternalKey):
-												case ($oAttDef instanceof AttributeInteger):
-												case ($oAttDef instanceof AttributeOneWayPassword):
-												case ($oAttDef instanceof AttributeString):
-																							
-													// Allow placeholders in attributes; replace them here
-													$sAttValue = $value;
-													$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
-													static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => '.$sAttValue);
-													
-													$oObj->Set($sAttCode, $sAttValue);
-													break;
-													
-												default:
+														static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => Not supported yet!');
+														break;
+														
+												}
 												
-													static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => Not supported yet!');
-													break;
-													
 											}
 											
 										}
 										
-									}
-									
-									
-									
-									// This may throw errors. 
-									// Example: using $ldap_object->telephonenumber$ (but empty value) while a NULL value is not allowed
-									// Silently supress
-									try {
 										
-										// Simulation?
-										if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
-											static::Trace('..... Simulating. No object will be created. Fictional object ID will be given: -123 for '.get_class($oObj).' - '.$oObj->Get('friendlyname'));
-											$iKey = -133;
+										
+										// This may throw errors. 
+										// Example: using $ldap_object->telephonenumber$ (but empty value) while a NULL value is not allowed
+										// Silently supress
+										try {
+											
+											// Simulation?
+											if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
+												$bFictionalId -= 1;
+												$iKey = $bFictionalId;
+												static::Trace('..... Simulating. No object will be created. Fictional object ID will be given: '.(String)$iKey.' for '.get_class($oObj).' - '.$oObj->GetName());
+											}
+											else {
+												$iKey = $oObj->DBInsert();
+												static::Trace('.... Created '.$sObjClass.'::'.$iKey.' for LDAP-object.');
+											}
+											
 										}
-										else {
-											$iKey = $oObj->DBInsert();
-											static::Trace('.... Created '.$sObjClass.' for LDAP-object.');
+										catch(Exception $e) {
+											static::Throw('Exception occurred while creating object: '.$e->GetMessage());
 										}
 										
+										$aPlaceHolders['previous_object->id'] = $iKey;
+										
+										// Only if first object in chain
+										if($bIsFirst == true) {
+											$aPlaceHolders['first_object->id'] = $iKey;
+											$bFirst = false;
+										}
+
 									}
 									catch(Exception $e) {
-										static::Throw('Exception occurred while creating object: '.$e->GetMessage());
+										static::Trace('.... Unable to create a new '.$sObjClass.' for LDAP-object: ' . $e->GetMessage());
 									}
-									
-									$aPlaceHolders['previous_object->id'] = $iKey;
-									
-									// Only if first object in chain
-									if($sObjectIndex == 0) {
-										$aPlaceHolders['first_object->id'] = $iKey;
-									}
-									
-									
-								}
-								catch(Exception $e) {
-									static::Trace('.... Unable to create a new '.$sObjClass.' for LDAP-object: ' . $e->GetMessage());
+							
 								}
 								
 								
@@ -470,73 +481,80 @@ use \utils;
 								
 							case 1:
 							
-								if(isset($aObject['update']) == false || $aObject['update'] != true) {
-									static::Trace('... Not updating object. Not creating object because "update" is not explicitly set to true.');
-									break;
-								}
 								// Fetch first object from set
 								$oObj = $oSet->Fetch();
 								
-								// Update							
-								static::Trace('... Update ' . $sClassName.'::'.$oObj->GetKey());
-								
-								$bUpdated = false;
-								$aAttDefs = MetaModel::ListAttributeDefs($sObjClass);
-								
-								foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
-									
-									$oAttDef = $aAttDefs[$sAttCode];
-									
-									switch(true) {
-										
-										case ($oAttDef instanceof AttributeDateTime):
-										case ($oAttDef instanceof AttributeDecimal):
-										case ($oAttDef instanceof AttributeExternalKey):
-										case ($oAttDef instanceof AttributeInteger):
-										case ($oAttDef instanceof AttributeOneWayPassword):
-										case ($oAttDef instanceof AttributeString):
-											
-											// Allow placeholders in attributes; replace them here
-											$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
-											
-											if($oObj->Get($sAttCode) != $sAttValue) {
-												$oObj->Set($sAttCode, $sAttValue);
-												$bUpdated = true;
-											}
-											
-											$oObj->Set($sAttCode, $sAttValue);
-											break;
-											
-										default:
-										
-											static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => Not supported yet!');
-											break;
-											
-									}
-									
-									
-								}
-								
-								if($bUpdated == true) {
-									
-									try {
-										// Simulation?
-										if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
-											static::Trace('..... Simulating. No object will really be updated for '.get_class($oObj).' - '.$oObj->Get('friendlyname'));
-										}
-										else {
-											$oObj->DBUpdate();
-											static::Trace('.... '.$sObjClass.' updated.');
-										}
-									}
-									catch(Exception $e) {
-										static::Trace('Exception while updating object: '.$e->GetMessage());
-									}
+								if(isset($aObject['update']) == false || $aObject['update'] != true) {
+									static::Trace('... Not updating object because "update" is not explicitly set to true.');
+									break;
 								}
 								else {
-									static::Trace('.... '.$sObjClass.' was already synced.');								
+									
+									// Update							
+									static::Trace('... Update ' . $sClassName.'::'.$oObj->GetKey());
+									
+									$bUpdated = false;
+									$aAttDefs = MetaModel::ListAttributeDefs($sObjClass);
+									
+									foreach($aObject['attributes'] as $sAttCode => $sAttValue) {
+										
+										$oAttDef = $aAttDefs[$sAttCode];
+										
+										switch(true) {
+											
+											case ($oAttDef instanceof AttributeDateTime):
+											case ($oAttDef instanceof AttributeDecimal):
+											case ($oAttDef instanceof AttributeExternalKey):
+											case ($oAttDef instanceof AttributeInteger):
+											case ($oAttDef instanceof AttributeOneWayPassword):
+											case ($oAttDef instanceof AttributeString):
+												
+												// Allow placeholders in attributes; replace them here
+												$sAttValue = MetaModel::ApplyParams($sAttValue, $aPlaceHolders);
+												
+												if($oObj->Get($sAttCode) != $sAttValue) {
+													$oObj->Set($sAttCode, $sAttValue);
+													$bUpdated = true;
+												}
+												
+												$oObj->Set($sAttCode, $sAttValue);
+												break;
+												
+											default:
+											
+												static::Trace('..... '.$sAttCode.' ('.get_class($oAttDef).') => Not supported yet!');
+												break;
+												
+										}
+										
+										
+									}
+									
+									if($bUpdated == true) {
+										
+										try {
+											// Simulation?
+											if(isset($aSyncRule['simulate']) == true && $aSyncRule['simulate'] == true) {
+												static::Trace('..... Simulating. No object will really be updated for '.get_class($oObj).' - '.$oObj->GetName());
+											}
+											else {
+												$oObj->DBUpdate();
+												static::Trace('.... '.$sObjClass.' updated.');
+											}
+										}
+										catch(Exception $e) {
+											static::Trace('Exception while updating object: '.$e->GetMessage());
+										}
+									}
+									else {
+										static::Trace('.... '.$sObjClass.' was already synced.');								
+									}
+
 								}
 								
+																	
+								// Even when not updating: do make sure this is populated to have decent simulations.
+								// So the ID will always be updated, even if the object isn't.
 								$aPlaceHolders['previous_object->id'] = $oObj->GetKey();
 								
 								if($bIsFirst == true) {
@@ -736,7 +754,11 @@ use \utils;
 		}
 		
 		/**
-		 * Get GUID (Global Unique Identifier) as a string.
+		 * Get GUID (Global Unique Identifier) as a string (From Binary Octet string to GUID string).
+		 * Global Unique Identifiers are a little bit different than SID. Although extremely remote, there is a slight possibility that there are two same SID’s in a forest.
+		 * But the main reason not to use SID’s is that they are regenerated in certain occasions.
+		 * Thus using a GUID is a better alternative as it is always unique and it does not change inside a forest.
+		 * The guid does require some work to make it in a readable format.
 		 *
 		 * @param \String $sADguid Binary string
 		 * 
