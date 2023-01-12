@@ -27,7 +27,7 @@ class ScheduledProcessLDAPSync extends AbstractWeeklyScheduledProcess {
 	 * @inheritdoc
 	 */
 	protected function GetModuleName() {
-		return 'itop-backup';
+		return 'jb-ldap';
 	}
 
 	/**
