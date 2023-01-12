@@ -620,7 +620,7 @@ use \utils;
 						
 					}
 					// Note: this will be deprecated after 2.7 is phased out, unless someone requests to keep this for iTop 3.0 too (no good reason since the built-in authent-ldap does the same thing).
-					elseif($sSourceConfig == 'knowitop') {
+					elseif($sSourceConfig == 'knowitop-multi-ldap-auth') {
 						
 						$aServerConfigs = MetaModel::GetModuleSetting('knowitop-multi-ldap-auth', 'ldap_settings', []);
 						
@@ -700,6 +700,88 @@ use \utils;
 			
 		}
 		
+		/**
+		 * Get SID (Security Identifier) as a string.
+		 *
+		 * @param \String $sADsid  Binary string 
+		 * 
+		 * @return \String
+		 */
+		public static function SIDtoString($sADsid) {
+			
+			$sID = "S-"; 
+			
+			//$sADguid = $info[0]['objectguid'][0]; 
+			$sIDinhex = str_split(bin2hex($sADsid), 2); 
+			
+			// Byte 0 = Revision Level 
+			$sID = $sID.hexdec($sIDinhex[0]).'-';
+			
+			// Byte 1-7 = 48 Bit Authority 
+			$sID = $sID.hexdec($sIDinhex[6].$sIDinhex[5].$sIDinhex[4].$sIDinhex[3].$sIDinhex[2].$sIDinhex[1]); // Byte 8 count of sub authorities - Get number of sub-authorities 
+			$subauths = hexdec($sIDinhex[7]); 
+			
+			//Loop through Sub Authorities
+			for($i = 0; $i < $subauths; $i++) {
+				$start = 8 + (4 * $i); // X amount of 32Bit (4 Byte) Sub Authorities 
+				$sID = $sID.'-'.hexdec($sIDinhex[$start+3].$sIDinhex[$start+2].$sIDinhex[$start+1].$sIDinhex[$start]); 
+			}
+			
+			return $sID;
+			
+		}
+		
+		/**
+		 * Get GUID (Global Unique Identifier) as a string.
+		 *
+		 * @param \String $sADguid Binary string
+		 * 
+		 * @return \String
+		 */
+		public static function GUIDtoString($sADguid) {
+			
+			$sGuidinhex = str_split(bin2hex($sADguid), 2);
+			$sGuid = ''; 
+			
+			//Take the first 4 octets and reverse their order 
+			$first = array_reverse(array_slice($sGuidinhex, 0, 4)); 
+			
+			foreach($first as $value) {
+				$sGuid .= $value;
+			}
+
+			$sGuid .= '-'; 
+		
+			// Take the next two octets and reverse their order
+			$second = array_reverse(array_slice($sGuidinhex, 4, 2, true), true); 
+			
+			foreach($second as $value) { $sGuid .= $value; } $sGuid .= '-'; 
+			
+			// Repeat for the next two 
+			$third = array_reverse(array_slice($sGuidinhex, 6, 2, true), true); 
+			foreach($third as $value) { 
+				$sGuid .= $value;
+			} 
+			
+			$sGuid .= '-'; 
+			
+			// Take the next two but do not reverse
+			$fourth = array_slice($sGuidinhex, 8, 2, true); 
+			foreach($fourth as $value) {
+				$sGuid .= $value;
+			}
+			
+			$sGuid .= '-'; 
+			
+			//Take the last part 
+			$last = array_slice($sGuidinhex, 10, 16, true); 
+			foreach($last as $value) {
+				$sGuid .= $value;
+			} 
+			
+			return $sGuid;
+			
+		}
 		
 		
 	}
