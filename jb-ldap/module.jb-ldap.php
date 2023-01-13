@@ -28,8 +28,8 @@ SetupWebPage::AddModule(
 		// Components
 		//
 		'datamodel' => array(
-			'app/common/ldapsync.class.inc.php',
-			'app/core/scheduledprocessldapsync.class.inc.php',
+			'app/ldapsync.class.inc.php',
+			'app/scheduledprocessldapsync.class.inc.php',
 		),
 		'webservice' => array(
 			
@@ -168,6 +168,9 @@ SetupWebPage::AddModule(
 						// - $previous_object->id$
 						//   Use case: link between a first and second object
 						// - $current_datetime$ will add the current datetime of sync.
+						//
+						// Note: rules are processed in order. If at some point when processing a rule $first_object->id$ or $previous_object->id$ is not set, the next object rules will be skipped.
+						//
 						'SyncPerson' => array(
 							'create' => true,
 							'update' => true,

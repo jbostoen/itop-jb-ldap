@@ -295,7 +295,6 @@ use \utils;
 						
 						static::Trace('.. '.str_repeat('-', 25).' Object rule: "'.$sObjectIndex.'"');
 						
-							
 						if(isset($aObject['class']) == false) {
 							static::Throw('Error: "class" for object not defined');
 						}
@@ -319,13 +318,13 @@ use \utils;
 									// Set for next rules
 									$aPlaceHolders['previous_object->id'] = -1;
 									
-									static::Trace('... Object does not exist. Not creating object because "create" is not explicitly set to true.');
+									static::Trace('... Not creating '.$sClassName.' because "create" is not explicitly set to true.');
 									break;
 								}
 								else {
 										
 									
-									static::Trace('... Object does not exist. Create ' . $sClassName);
+									static::Trace('... Create '.$sClassName);
 									
 									try {
 										
@@ -466,7 +465,6 @@ use \utils;
 										// Only if first object in chain
 										if($bIsFirst == true) {
 											$aPlaceHolders['first_object->id'] = $iKey;
-											$bFirst = false;
 										}
 
 									}
@@ -485,8 +483,9 @@ use \utils;
 								$oObj = $oSet->Fetch();
 								
 								if(isset($aObject['update']) == false || $aObject['update'] != true) {
+									
 									static::Trace('... Not updating object because "update" is not explicitly set to true.');
-									break;
+									
 								}
 								else {
 									
@@ -559,7 +558,6 @@ use \utils;
 								
 								if($bIsFirst == true) {
 									$aPlaceHolders['first_object->id'] = $oObj->GetKey();
-									$bIsFirst = false;
 								}
 								
 								break;
@@ -573,6 +571,17 @@ use \utils;
 								break;
 								
 						}
+						
+						// First object has been processed.
+						$bIsFirst = false;
+						
+						// If this is not the first object; and the $first_object->id$ or $previous_object->id$ is -1, it means there was an issue in creating/finding the previous object.
+						// To avoid more issues in "reconcile_on" or attribute values (mostly AttributeExternalKey): do not continue.
+						if(count($aSyncRule['objects']) > 0 && ($aPlaceHolders['first_object->id'] == -1 || $aPlaceHolders['previous_object->id'] == -1)) {
+							static::Trace('.. Skipping next object rules, because first_object->id and/or last_object->id could not be set.');
+							break;
+						}
+						
 						
 					}
 					
@@ -731,7 +740,7 @@ use \utils;
 		 */
 		public static function SIDtoString($sADsid) {
 			
-			$sID = "S-"; 
+			$sID = 'S-'; 
 			
 			//$sADguid = $info[0]['objectguid'][0]; 
 			$sIDinhex = str_split(bin2hex($sADsid), 2); 
